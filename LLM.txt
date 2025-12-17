@@ -1,0 +1,581 @@
+# NEAR Merch Store - Technical Guide for LLMs
+
+This is the technical guide for the NEAR Protocol Official Merch Store, a production-ready e-commerce application demonstrating Module Federation, every-plugin architecture, and NEAR Protocol integration.
+
+For contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Architecture Overview
+
+This is a **Module Federation monorepo** with three federated modules:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Host (Server)                        │
+│  - Hono.js + oRPC router                                │
+│  - Runtime config loader (bos.config.json)              │
+│  - Module Federation host                               │
+│  - every-plugin runtime                                 │
+└─────────────────────────────────────────────────────────┘
+            ↓                         ↓
+┌───────────────────────┐ ┌───────────────────────┐
+│    UI Remote          │ │    API Plugin         │
+│  - React 19           │ │  - every-plugin       │
+│  - TanStack Router    │ │  - oRPC contract      │
+│  - Module Federation  │ │  - Effect services    │
+└───────────────────────┘ └───────────────────────┘
+```
+
+**Key Characteristics:**
+- ✅ Runtime-loaded configuration (no rebuild for URL changes)
+- ✅ Independent deployment of UI, API, and Host
+- ✅ Type-safe RPC with oRPC
+- ✅ NEAR Protocol authentication via Better-Auth
+- ✅ CDN-ready with Module Federation
+
+## Configuration System: bos.config.json
+
+The **entire system** is configured via `bos.config.json` - a runtime-loaded JSON file:
+
+```json
+{
+  "account": "near-merch-store.near",
+  "app": {
+    "host": {
+      "title": "Near Merch",
+      "development": "http://localhost:3001",
+      "production": "https://everything.market"
+    },
+    "ui": {
+      "name": "marketplace_ui",
+      "development": "http://localhost:3002",
+      "production": "https://cdn.example.com/ui/remoteEntry.js"
+    },
+    "api": {
+      "plugins": {
+        "marketplace-api": {
+          "development": "http://localhost:3014/remoteEntry.js",
+          "production": "https://cdn.example.com/api/remoteEntry.js",
+          "variables": {},
+          "secrets": {
+            "STRIPE_SECRET_KEY": "{{STRIPE_SECRET_KEY}}"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Why this approach?**
+- Environment switching via `NODE_ENV` (no rebuild needed)
+- CDN URLs can be updated without code changes
+- Secrets use template injection (`{{VAR_NAME}}`)
+- Single source of truth for all configurations
+
+**Implementation:** See `host/src/config.ts` for the loader.
+
+## Module Federation Setup
+
+### UI Remote (ui/)
+
+**Technology:** Rsbuild + `@module-federation/rsbuild-plugin`
+
+The UI is a **React 19 application** built with:
+- TanStack Router (file-based routing)
+- TanStack Query (data fetching)
+- Tailwind CSS v4 (styling)
+- shadcn/ui (component library)
+
+**Exposed Modules:**
+```typescript
+exposes: {
+  './App': './src/bootstrap.tsx',        // Main application
+  './Router': './src/router.tsx',        // TanStack Router instance
+  './components': './src/components/index.ts',  // Reusable components
+  './providers': './src/providers/index.tsx',   // Context providers
+  './types': './src/types/index.ts'      // TypeScript types
+}
+```
+
+**Shared Dependencies (singleton):**
+- `react`, `react-dom`
+- `@tanstack/react-query`, `@tanstack/react-router`
+- `@hot-labs/near-connect`, `near-kit`
+
+**Build Config:** `ui/rsbuild.config.ts`
+- Uses `pluginModuleFederation` for federation
+- Uses `withZephyr` for automatic CDN deployment
+- Auto-updates `bos.config.json` on deployment
+
+**How Host Loads UI:**
+```typescript
+// host/src/main.tsx
+const config = await loadBosConfig();  // Reads bos.config.json
+
+createInstance({
+  name: 'host',
+  remotes: [{
+    name: config.ui.name,              // "marketplace_ui"
+    entry: `${config.ui.url}/remoteEntry.js`  // From config!
+  }]
+});
+
+const RemoteApp = await loadRemote(`${config.ui.name}/App`);
+```
+
+**Key Point:** No hardcoded URLs. Everything derived from `bos.config.json`.
+
+### API Plugin (api/)
+
+**Technology:** Rspack + `every-plugin`
+
+The API is an **every-plugin** that exposes an oRPC router. See [every-plugin template guide](https://github.com/near-everything/every-plugin/blob/main/plugins/_template/LLM.txt) for plugin development patterns.
+
+**Structure:**
+```
+api/
+├── src/
+│   ├── contract.ts      # oRPC route definitions
+│   ├── index.ts         # createPlugin() implementation
+│   ├── schema.ts        # Zod schemas for validation
+│   ├── services/        # Business logic (Effect-based)
+│   │   ├── products.ts  # Product catalog
+│   │   ├── orders.ts    # Order management
+│   │   ├── stripe.ts    # Payment processing
+│   │   └── fulfillment.ts  # Print-on-demand
+│   └── db/              # Database schema (Drizzle)
+└── plugin.dev.ts        # Dev server config
+```
+
+**Plugin Definition:**
+```typescript
+// api/src/index.ts
+export default createPlugin({
+  variables: z.object({
+    network: z.enum(['mainnet', 'testnet']),
+    contractId: z.string()
+  }),
+  
+  secrets: z.object({
+    STRIPE_SECRET_KEY: z.string(),
+    GELATO_API_KEY: z.string()
+  }),
+  
+  contract,  // oRPC contract from contract.ts
+  
+  initialize: (config) => Effect.gen(function* () {
+    // Create services with config
+    const stripe = new StripeService(config.secrets.STRIPE_SECRET_KEY);
+    const fulfillment = new FulfillmentService(config.secrets.GELATO_API_KEY);
+    const products = new ProductsService(db);
+    const orders = new OrdersService(db, stripe, fulfillment);
+    
+    return { stripe, fulfillment, products, orders };
+  }),
+  
+  createRouter: (context, builder) => ({
+    products: {
+      list: builder.products.list.handler(async ({ input }) => {
+        return await Effect.runPromise(
+          context.products.list(input)
+        );
+      }),
+      // ... more handlers
+    }
+  })
+});
+```
+
+**How Host Loads API:**
+```typescript
+// host/src/runtime.ts
+const config = await loadBosConfig();  // Reads bos.config.json
+
+const runtime = createPluginRuntime({
+  registry: Object.fromEntries(
+    Object.entries(config.apiPlugins).map(([name, plugin]) => [
+      name,
+      {
+        remote: plugin.url,      // From config!
+        variables: plugin.variables,
+        secrets: plugin.secrets
+      }
+    ])
+  )
+});
+
+const { client, router } = await runtime.usePlugin('marketplace-api', {
+  variables: config.apiPlugins['marketplace-api'].variables,
+  secrets: config.apiPlugins['marketplace-api'].secrets
+});
+
+// Router is merged into main oRPC router
+```
+
+**Build Config:** `api/rspack.config.cjs`
+- Uses `EveryPluginDevServer` for development
+- Uses `withZephyr` for CDN deployment
+- Auto-updates `bos.config.json` on deployment
+
+**Key Point:** Plugins are independently deployable. Each plugin has its own contract, services, and database schema.
+
+## NEAR Protocol Integration
+
+### Authentication: Better-Auth + better-near-auth
+
+The project uses **Better-Auth** with the **better-near-auth** plugin for NEAR Protocol authentication.
+
+**Host Setup:**
+```typescript
+// host/src/lib/auth.ts
+import { betterAuth } from "better-auth";
+import { nearAuth } from "better-near-auth";
+
+export const auth = betterAuth({
+  database: /* drizzle adapter */,
+  plugins: [
+    nearAuth({
+      network: 'mainnet',
+    })
+  ]
+});
+```
+
+**Client Setup:**
+```typescript
+// ui/src/lib/auth-client.ts
+import { createAuthClient } from "better-auth/react";
+import { nearAuthClient } from "better-near-auth/client";
+
+export const authClient = createAuthClient({
+  plugins: [nearAuthClient()]
+});
+```
+
+### NEAR Client: near-kit
+
+**near-kit** provides a unified interface for NEAR Protocol operations. Full documentation: https://kit.near.tools/llms-full.txt
+
+**How it's exposed:**
+
+Via **better-near-auth**, you get access to a near-kit client through `getNearClient()`:
+
+```typescript
+// After authentication
+const { data: session } = authClient.useSession();
+
+if (session?.user?.walletAddress) {
+  const nearClient = await getNearClient({
+    network: 'mainnet',
+    accountId: session.user.walletAddress
+  });
+  
+  // Now use near-kit methods
+  const balance = await nearClient.getBalance(session.user.walletAddress);
+  
+  // Call contracts
+  await nearClient.callContract({
+    contractId: 'social.near',
+    method: 'set',
+    args: { data: { ... } }
+  });
+}
+```
+
+See [better-near-auth LLM.txt](https://github.com/elliotBraem/better-near-auth/blob/main/LLM.txt) for complete authentication patterns.
+
+**Key near-kit features:**
+- ✅ Unified API for mainnet/testnet
+- ✅ Account management (create, import, export)
+- ✅ Contract calls (view, change methods)
+- ✅ Transaction signing
+- ✅ Balance queries
+- ✅ Storage deposit management
+- ✅ Meta-transaction support (via relayer)
+
+### Meta-Transactions (Relayer)
+
+The API plugin includes a **relayer service** for NEAR meta-transactions:
+
+```typescript
+// API provides these endpoints:
+POST /api/relayer/connect        // Ensure storage deposit
+POST /api/relayer/publish        // Submit delegate action
+
+// Usage in UI:
+await client.relayer.publish({
+  accountId: session.user.walletAddress,
+  action: {
+    type: 'FunctionCall',
+    contractId: 'social.near',
+    method: 'set',
+    args: { ... },
+    gas: '300000000000000',
+    deposit: '100000000000000000000000'
+  }
+});
+```
+
+This allows **gasless transactions** where the relayer pays for gas.
+
+## Database Schema
+
+**Host Database** (Better-Auth):
+- `host/src/db/schema/auth.ts` - User accounts, sessions, verification tokens
+
+**API Database** (Marketplace):
+- `api/src/db/schema.ts` - Products, orders, sync jobs
+
+Both use **Drizzle ORM** with **SQLite** (libsql).
+
+**Migrations:**
+```bash
+# Host migrations
+bun --filter host db:push
+
+# API migrations  
+bun --filter marketplace-api db:push
+```
+
+## Development Workflow
+
+### Local Development
+
+**Start all services:**
+```bash
+bun dev
+# Starts:
+# - API: http://localhost:3014
+# - UI: http://localhost:3002
+# - Host: http://localhost:3001 (proxies /api to :3000)
+```
+
+**Individual services:**
+```bash
+bun dev:api   # API only (port 3014)
+bun dev:ui    # UI only (port 3002)
+bun dev:host  # Host only (port 3001)
+```
+
+**Environment switching:**
+```bash
+# Use local remotes (default)
+bun dev:host
+
+# Use production remotes
+NODE_ENV=production bun dev:host
+```
+
+The host reads `NODE_ENV` and loads URLs from `bos.config.json`:
+- `development` → `http://localhost:3002`, `http://localhost:3014`
+- `production` → CDN URLs
+
+### Deployment
+
+**Deploy UI:**
+```bash
+cd ui
+bun build
+# 1. Builds to dist/
+# 2. Uploads to CDN via zephyr-rsbuild-plugin
+# 3. Auto-updates bos.config.json with production URL
+```
+
+**Deploy API:**
+```bash
+cd api
+bun build
+# 1. Builds to dist/
+# 2. Uploads to CDN via zephyr-rspack-plugin
+# 3. Auto-updates bos.config.json with production URL
+```
+
+**Deploy Host:**
+```bash
+cd host
+bun build
+# 1. Builds server bundle to dist/
+# 2. Deploy to hosting provider (Vercel, Railway, etc.)
+# 3. Ensure bos.config.json is accessible at runtime
+```
+
+**Key Point:** UI and API are **independently deployable** without rebuilding the host!
+
+## Type Safety
+
+### oRPC Contract
+
+The API contract provides **end-to-end type safety**:
+
+```typescript
+// api/src/contract.ts
+export const contract = oc.router({
+  products: {
+    list: oc.route({ method: 'GET', path: '/products' })
+      .input(z.object({
+        limit: z.number().default(20),
+        offset: z.number().default(0)
+      }))
+      .output(z.object({
+        products: z.array(ProductSchema),
+        total: z.number()
+      }))
+  }
+});
+
+// ui/src/integrations/marketplace-api/products.ts
+// TypeScript knows the exact input/output types!
+const { data } = await client.products.list({
+  limit: 20,
+  offset: 0
+});
+// data.products is Product[]
+// data.total is number
+```
+
+### Module Federation Types
+
+Shared dependencies ensure singleton React/TanStack instances:
+
+```typescript
+// Both ui and host use the same React instance
+import { useState } from 'react';  // Singleton
+
+// Type imports work across remote boundaries
+import type { Product } from 'marketplace_ui/types';
+```
+
+## Testing
+
+**Unit Tests:**
+```bash
+bun test          # All workspaces
+bun test:api      # API only
+bun test:ui       # UI only
+```
+
+**Integration Tests:**
+See `api/tests/integration/plugin.test.ts` for plugin testing patterns.
+
+## Common Patterns
+
+### Adding a New API Endpoint
+
+1. **Define in contract** (`api/src/contract.ts`):
+```typescript
+export const contract = oc.router({
+  myNewEndpoint: oc.route({ method: 'POST', path: '/my-endpoint' })
+    .input(MyInputSchema)
+    .output(MyOutputSchema)
+    .errors(CommonPluginErrors)
+});
+```
+
+2. **Create service** (`api/src/services/my-service.ts`):
+```typescript
+export class MyService {
+  doSomething(input: MyInput) {
+    return Effect.tryPromise({
+      try: async () => {
+        // Implementation
+        return result;
+      },
+      catch: (error: unknown) => new Error(`Failed: ${error}`)
+    });
+  }
+}
+```
+
+3. **Add handler** (`api/src/index.ts`):
+```typescript
+createRouter: (context, builder) => ({
+  myNewEndpoint: builder.myNewEndpoint.handler(async ({ input }) => {
+    return await Effect.runPromise(
+      context.myService.doSomething(input)
+    );
+  })
+})
+```
+
+4. **Use in UI** (`ui/src/integrations/marketplace-api/`):
+```typescript
+export const useMyEndpoint = () => {
+  return useMutation({
+    mutationFn: (input: MyInput) => 
+      client.myNewEndpoint(input)
+  });
+};
+```
+
+### Adding a New UI Page
+
+1. **Create route file** (`ui/src/routes/my-page.tsx`):
+```typescript
+import { createFileRoute } from '@tanstack/react-router';
+
+export const Route = createFileRoute('/my-page')({
+  component: MyPage
+});
+
+function MyPage() {
+  return <div>My Page</div>;
+}
+```
+
+2. **TanStack Router auto-generates** route tree on save.
+
+3. **Navigate**: `<Link to="/my-page">Go</Link>`
+
+### Configuring a New Environment
+
+1. **Add to bos.config.json**:
+```json
+{
+  "app": {
+    "host": {
+      "staging": "https://staging.example.com"
+    },
+    "ui": {
+      "staging": "https://cdn.example.com/ui-staging/remoteEntry.js"
+    }
+  }
+}
+```
+
+2. **Update config types** (`host/src/config.ts`):
+```typescript
+type Environment = 'development' | 'production' | 'staging';
+```
+
+3. **Use**: `NODE_ENV=staging bun dev:host`
+
+## Related Documentation
+
+- **every-plugin Guide**: https://github.com/near-everything/every-plugin/blob/main/plugins/_template/LLM.txt
+- **near-kit Full Documentation**: https://kit.near.tools/llms-full.txt
+- **better-near-auth Guide**: https://github.com/elliotBraem/better-near-auth/blob/main/LLM.txt
+- **Contributing Guide**: [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+## Troubleshooting
+
+**Module Federation Issues:**
+- Clear browser cache
+- Check `bos.config.json` URLs are accessible
+- Verify shared dependencies versions match in `package.json`
+
+**Type Errors:**
+- Run `bun typecheck` in each workspace
+- Ensure oRPC contract is up-to-date
+- Check Module Federation type exports
+
+**Build Errors:**
+- Check all dependencies are installed: `bun install`
+- Clear dist folders: `rm -rf */dist`
+- Rebuild: `bun build`
+
+**Runtime Config Not Loading:**
+- Ensure `bos.config.json` is in host root
+- Check file is accessible at runtime (not in .gitignore)
+- Verify NODE_ENV matches a key in config
+
+For more help, see [CONTRIBUTING.md](./CONTRIBUTING.md) or open an issue.

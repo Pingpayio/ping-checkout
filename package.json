@@ -1,0 +1,34 @@
+{
+  "name": "marketplace-demo",
+  "private": true,
+  "workspaces": [
+    "api",
+    "host",
+    "ui"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:ui": "USE_REMOTE_API=true turbo dev --filter=host --filter=marketplace_ui",
+    "dev:api": "USE_REMOTE_UI=true turbo dev --filter=host --filter=marketplace-api",
+    "start": "turbo preview --filter=host",
+    "build": "turbo build",
+    "build:api": "turbo build --filter=marketplace-api",
+    "build:host": "turbo build --filter=host",
+    "build:ui": "turbo build --filter=marketplace_ui",
+    "deploy": "NODE_ENV=production turbo build --filter=marketplace_ui --filter=marketplace-api",
+    "typecheck": "turbo typecheck",
+    "db:push": "turbo db:push",
+    "db:studio": "turbo db:studio",
+    "db:generate": "turbo db:generate",
+    "db:migrate": "turbo db:migrate",
+    "db:sync": "bun run scripts/sync-db.ts"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "turbo": "^2.6.3"
+  },
+  "packageManager": "bun@1.2.20"
+}
