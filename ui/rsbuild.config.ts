@@ -13,6 +13,9 @@ const __dirname = path.dirname(__filename);
 const normalizedName = pkg.name;
 const isProduction = process.env.NODE_ENV === "production";
 
+const configPath = path.resolve(__dirname, "../bos.config.json");
+const bosConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
 function updateHostConfig(_name: string, url: string) {
   try {
     const configPath = path.resolve(__dirname, "../bos.config.json");
@@ -98,6 +101,9 @@ if (isProduction) {
 export default defineConfig({
   plugins,
   source: {
+    define: {
+      "process.env.PUBLIC_ACCOUNT_ID": JSON.stringify(bosConfig.account),
+    },
     entry: {
       index: "./src/main.tsx",
       remote: "./src/remote.tsx",
@@ -110,6 +116,10 @@ export default defineConfig({
   },
   html: {
     template: "./index.html",
+    templateParameters: {
+      title: bosConfig.app.host.title,
+      description: bosConfig.app.host.description,
+    },
   },
   dev: {
     lazyCompilation: false,

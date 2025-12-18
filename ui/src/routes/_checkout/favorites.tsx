@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useFavorites } from '@/hooks/use-favorites';
 import { useCart } from '@/hooks/use-cart';
 
-export const Route = createFileRoute('/_marketplace/favorites')({
+export const Route = createFileRoute('/_checkout/favorites')({
   component: FavoritesPage,
 });
 

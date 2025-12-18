@@ -1,6 +1,6 @@
-# everything.market
+# host
 
-Server host for the marketplace with authentication and Module Federation.
+Server host for the application with authentication and Module Federation.
 
 ## Architecture
 
@@ -38,7 +38,7 @@ The host orchestrates two federation systems:
 
 ```json
 {
-  "marketplace_ui": {
+  "ui": {
     "url": "https://...",
     "exposes": {
       "App": "./App",
@@ -55,7 +55,7 @@ The host orchestrates two federation systems:
 ```json
 {
   "plugins": {
-    "marketplace-api": {
+    "api": {
       "remote": "https://...",
       "secrets": {
         "STRIPE_SECRET_KEY": "{{STRIPE_SECRET_KEY}}"

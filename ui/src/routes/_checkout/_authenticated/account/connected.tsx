@@ -7,7 +7,7 @@ import { Social } from 'near-social-js';
 import { useEffect, useState } from 'react';
 
 export const Route = createFileRoute(
-  "/_marketplace/_authenticated/account/connected"
+  "/_checkout/_authenticated/account/connected"
 )({
   component: ConnectedAccountsPage,
   loader: async () => {
@@ -72,7 +72,7 @@ function ConnectedAccountsPage() {
     try {
       if (!accountId) {
         await authClient.requestSignIn.near(
-          { recipient: "marketplace-demo.near" },
+          { recipient: process.env.PUBLIC_ACCOUNT_ID || "every.near" },
           {
             onSuccess: () => {
               setIsProcessingNear(false);
@@ -86,7 +86,7 @@ function ConnectedAccountsPage() {
         );
       } else {
         await authClient.near.link(
-          { recipient: "marketplace-demo.near" },
+          { recipient: process.env.PUBLIC_ACCOUNT_ID || "every.near" },
           {
             onSuccess: () => {
               console.log("NEAR account linked successfully");

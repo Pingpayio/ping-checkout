@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_marketplace/_page")({
+export const Route = createFileRoute("/_checkout/_page")({
   component: PageLayout,
 });
 

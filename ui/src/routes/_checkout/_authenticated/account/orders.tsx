@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/_marketplace/_authenticated/account/orders')({
+export const Route = createFileRoute('/_checkout/_authenticated/account/orders')({
   loader: () => apiClient.getOrders({ limit: 100, offset: 0 }),
   pendingComponent: OrdersLoading,
   errorComponent: OrdersError,

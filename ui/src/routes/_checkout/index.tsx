@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-export const Route = createFileRoute("/_marketplace/")({
+export const Route = createFileRoute("/_checkout/")({
   pendingComponent: LoadingSpinner,
   loader: async () => {
     // Prefetch products, but don't throw errors if it fails

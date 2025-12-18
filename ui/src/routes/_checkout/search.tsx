@@ -17,7 +17,7 @@ type SearchParams = {
   category?: string;
 };
 
-export const Route = createFileRoute('/_marketplace/search')({
+export const Route = createFileRoute('/_checkout/search')({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     q: typeof search.q === 'string' ? search.q : undefined,
     category: typeof search.category === 'string' ? search.category : undefined,

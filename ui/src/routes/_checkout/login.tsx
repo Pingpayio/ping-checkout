@@ -9,7 +9,7 @@ type SearchParams = {
   redirect?: string;
 };
 
-export const Route = createFileRoute("/_marketplace/login")({
+export const Route = createFileRoute("/_checkout/login")({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
   }),
@@ -38,7 +38,7 @@ function LoginPage() {
     setIsConnectingWallet(true);
     try {
       await authClient.requestSignIn.near(
-        { recipient: "marketplace-demo.near" },
+        { recipient: process.env.PUBLIC_ACCOUNT_ID || "every.near" },
         {
           onSuccess: () => {
             setIsConnectingWallet(false);
@@ -66,7 +66,7 @@ function LoginPage() {
     setIsSigningInWithNear(true);
     try {
       await authClient.signIn.near(
-        { recipient: "marketplace-demo.near" },
+        { recipient: process.env.PUBLIC_ACCOUNT_ID || "every.near" },
         {
           onSuccess: () => {
             setIsSigningInWithNear(false);

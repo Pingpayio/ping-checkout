@@ -11,7 +11,7 @@ import {
 import { ChevronRight, Link2, Package } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_marketplace/_authenticated/account")({
+export const Route = createFileRoute("/_checkout/_authenticated/account")({
   component: MyAccountPage,
 });
 

@@ -5,7 +5,7 @@ export const authClient = createAuthClient({
   baseURL: window.location.origin,
   plugins: [
     siwnClient({
-      domain: "marketplace-demo.near",
+      domain: process.env.PUBLIC_ACCOUNT_ID || "every.near",
       networkId: "mainnet",
     }),
   ],

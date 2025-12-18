@@ -1,6 +1,6 @@
-# marketplace-ui
+# checkout-ui
 
-Marketplace frontend for browsing products, managing cart, and checkout.
+Checkout frontend for browsing products, managing cart, and checkout.
 
 ## Tech Stack
 
@@ -33,7 +33,7 @@ Exposed as remote module for host consumption via `remoteEntry.js`:
 
 ```json
 {
-  "marketplace_ui": {
+  "checkout_ui": {
     "url": "https://...",
     "exposes": {
       "App": "./App",

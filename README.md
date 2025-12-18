@@ -1,6 +1,6 @@
-# ping-checkout
+# PingPay Checkout
 
-A production-ready e-commerce marketplace powered by NEAR Protocol, demonstrating print-on-demand fulfillment with Module Federation architecture.
+A production-ready e-commerce checkout powered by PingPay, demonstrating print-on-demand fulfillment with Module Federation architecture.
 
 Built with React, Hono.js, oRPC, Better-Auth, and Module Federation.
 
@@ -49,7 +49,6 @@ Visit http://localhost:3001 to see the application.
 - ✅ **Runtime Configuration** - All URLs loaded from `bos.config.json` (no rebuild needed!)
 - ✅ **Independent Deployment** - UI, API, and Host deploy separately
 - ✅ **Type Safety** - End-to-end with oRPC contracts
-- ✅ **NEAR Integration** - Authentication + transactions via Better-Auth
 - ✅ **CDN-Ready** - Module Federation with automatic CDN deployment
 
 See [LLM.txt](./LLM.txt) for complete architecture details.
@@ -66,11 +65,6 @@ See [LLM.txt](./LLM.txt) for complete architecture details.
 - every-plugin architecture for modular APIs
 - Effect-TS for service composition
 
-**NEAR Protocol:**
-- Better-Auth + better-near-auth for wallet authentication
-- near-kit for blockchain operations
-- Meta-transaction relayer for gasless transactions
-
 **Database & Payments:**
 - SQLite (libsql) + Drizzle ORM
 - Stripe for payments
@@ -82,21 +76,22 @@ All runtime configuration lives in `bos.config.json`:
 
 ```json
 {
-  "account": "near-merch-store.near",
+  "account": "checkout.pingpayio.near",
   "app": {
-    "host": { "title": "Near Merch" },
+    "host": { "title": "PingPay Checkout" },
     "ui": {
-      "name": "marketplace_ui",
       "development": "http://localhost:3002",
       "production": "https://cdn.example.com/ui/remoteEntry.js"
     },
     "api": {
-      "plugins": {
-        "marketplace-api": {
-          "development": "http://localhost:3014/remoteEntry.js",
-          "production": "https://cdn.example.com/api/remoteEntry.js"
-        }
-      }
+      "development": "http://localhost:3014/remoteEntry.js",
+      "production": "https://cdn.example.com/api/remoteEntry.js",
+      "variables": {
+      },
+      "secrets": [
+        "DATABASE_URL",
+        "DATABASE_AUTH_TOKEN"
+      ]
     }
   }
 }

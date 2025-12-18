@@ -1,6 +1,6 @@
-# marketplace-api
+# api
 
-[every-plugin](https://github.com/near-everything/every-plugin) based API for marketplace operations.
+[every-plugin](https://github.com/near-everything/every-plugin) based API.
 
 ## Plugin Architecture
 
@@ -10,8 +10,8 @@ Built with **every-plugin** framework (Rspack + Module Federation):
 ┌─────────────────────────────────────────────────────────┐
 │                    createPlugin()                       │
 ├─────────────────────────────────────────────────────────┤
-│  variables: { network, contractId, ... }                │
-│  secrets: { STRIPE_SECRET_KEY, PRINTFUL_API_KEY, ... }  │
+│  variables: {  ... }                │
+│  secrets: { ... }  │
 │  contract: oRPC route definitions                       │
 │  initialize(): Effect → services                        │
 │  createRouter(): handlers using services                │
@@ -43,49 +43,11 @@ Each domain can be its own plugin with independent:
 - Router handlers
 - Database schema
 
-## API Endpoints
-
-**Products** - Product catalog from Printful
-
-- `GET /products` - List products
-- `GET /products/{id}` - Get product
-- `GET /products/search` - Search products
-- `GET /products/featured` - Featured products
-
-**Collections**
-
-- `GET /collections` - List collections
-- `GET /collections/{slug}` - Get collection with products
-
-**Checkout & Orders**
-
-- `POST /checkout` - Create Stripe checkout session
-- `GET /orders` - List user orders
-- `GET /orders/{id}` - Get order details
-
-**Sync** - Product sync from fulfillment providers
-
-- `POST /sync` - Trigger product sync
-- `GET /sync-status` - Check sync status
-
-**Relayer** - NEAR meta-transactions
-
-- `POST /connect` - Ensure storage deposit
-- `POST /publish` - Submit delegate action
-
-**Webhooks**
-
-- `POST /webhooks/stripe` - Stripe payment events
-- `POST /webhooks/fulfillment` - Gelato/Printful fulfillment events
-
 ## Tech Stack
 
 - **Framework**: every-plugin + oRPC
 - **Effects**: Effect-TS for service composition
 - **Database**: SQLite (libsql) + Drizzle ORM
-- **Payments**: Stripe
-- **Fulfillment**: Printful, Gelato
-- **NEAR**: near-kit + near-social-js
 
 ## Available Scripts
 
@@ -101,22 +63,15 @@ Each domain can be its own plugin with independent:
 
 ```json
 {
-  "plugins": {
-    "marketplace-api": {
-      "remote": "https://...",
-      "secrets": {
-        "STRIPE_SECRET_KEY": "{{STRIPE_SECRET_KEY}}",
-        "PRINTFUL_API_KEY": "{{PRINTFUL_API_KEY}}"
-      }
+  "api": {
+      "development": "http://localhost:3014/remoteEntry.js",
+      "production": "https://cdn.example.com/api/remoteEntry.js",
+      "variables": {
+      },
+      "secrets": [
+        "DATABASE_URL",
+        "DATABASE_AUTH_TOKEN"
+      ]
     }
-  }
 }
 ```
-
-**Required Secrets:**
-
-- `STRIPE_SECRET_KEY` - Stripe API key
-- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
-- `PRINTFUL_API_KEY` - Printful API key
-- `GELATO_API_KEY` - Gelato API key
-- `DATABASE_URL` - SQLite database URL

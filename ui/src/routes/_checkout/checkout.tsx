@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { NearMark } from '@/components/near-mark';
 import { useGetShippingQuote, type QuoteOutput } from '@/integrations/api/checkout';
 
-export const Route = createFileRoute("/_marketplace/checkout")({
+export const Route = createFileRoute("/_checkout/checkout")({
   component: CheckoutPage,
 });
 

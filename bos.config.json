@@ -4,10 +4,9 @@
     "host": {
       "title": "PingPay Checkout",
       "development": "http://localhost:3001",
-      "production": "https://near.everything.market"
+      "production": "https://checkout.pingpay.io"
     },
     "ui": {
-      "name": "checkout_ui",
       "development": "http://localhost:3002",
       "production": "https://elliot-braem-1213-marketplace-ui-near-merch-store-b32b7b650-ze.zephyrcloud.app",
       "exposes": {
@@ -18,9 +17,8 @@
       }
     },
     "api": {
-      "name": "checkout-api",
       "development": "http://localhost:3014",
-      "production": "https://elliot-braem-1212-marketplace-api-near-merch-stor-6a4c96dde-ze.zephyrcloud.app",
+      "production": "https://elliot-braem-1212-api-near-merch-stor-6a4c96dde-ze.zephyrcloud.app",
       "variables": {
       },
       "secrets": [

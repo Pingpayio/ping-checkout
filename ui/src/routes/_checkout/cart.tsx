@@ -5,7 +5,7 @@ import { useCart } from '@/hooks/use-cart';
 import { ProductCard } from '@/components/marketplace/product-card';
 import { SIZES } from '@/integrations/api';
 
-export const Route = createFileRoute('/_marketplace/cart')({
+export const Route = createFileRoute('/_checkout/cart')({
   component: CartPage,
 });
 

@@ -15,6 +15,18 @@ import config from './rsbuild.config';
 import { initializePlugins } from './src/runtime';
 import { loadBosConfig } from './src/config';
 import { createRouter } from './src/routers';
+
+// Populate process.env with values from rsbuild config source.define
+if (config.source?.define) {
+  for (const [key, value] of Object.entries(config.source.define)) {
+    if (key.startsWith('process.env.')) {
+      const envKey = key.replace('process.env.', '');
+      if (process.env[envKey] === undefined) {
+        process.env[envKey] = JSON.parse(value as string);
+      }
+    }
+  }
+}
 import { auth } from './src/lib/auth';
 import { db } from './src/db';
 import * as schema from './src/db/schema/auth';
@@ -131,55 +143,6 @@ async function startServer() {
   });
 
   apiApp.on(['POST', 'GET'], '/api/auth/*', (c) => auth.handler(c.req.raw));
-
-  apiApp.post('/api/webhooks/stripe', async (c) => {
-    const req = c.req.raw;
-    const body = await c.req.text();
-    const signature = c.req.header('stripe-signature') || '';
-    const context = await createContext(req);
-
-    const result = await apiHandler.handle(
-      new Request(req.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body, signature }),
-      }),
-      { prefix: '/api', context }
-    );
-
-    return result.response
-      ? c.newResponse(result.response.body, result.response)
-      : c.text('Not Found', 404);
-  });
-
-  apiApp.post('/api/webhooks/fulfillment', async (c) => {
-    const req = c.req.raw;
-    const body = await c.req.text();
-    // Gelato uses x-gelato-signature
-    let signature = c.req.header('x-gelato-signature') || '';
-    
-    // Check if it's a Printful webhook (different signature header)
-    // Printful V2 uses x-pf-webhook-signature
-    const printfulSignature = c.req.header('x-pf-webhook-signature');
-    if (printfulSignature) {
-        signature = printfulSignature;
-    }
-
-    const context = await createContext(req);
-
-    const result = await apiHandler.handle(
-      new Request(req.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body, signature }),
-      }),
-      { prefix: '/api', context }
-    );
-
-    return result.response
-      ? c.newResponse(result.response.body, result.response)
-      : c.text('Not Found', 404);
-  });
 
   apiApp.all('/api/rpc/*', async (c) => {
     const req = c.req.raw;
