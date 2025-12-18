@@ -1,59 +1,110 @@
 import { z } from 'every-plugin/zod';
 
-export const PaymentLineItemSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-  image: z.string().optional(),
-  unitAmount: z.number().positive(),
-  quantity: z.number().int().positive(),
+export const PartySchema = z.object({
+  address: z.string().min(1),
+  chainId: z.string().min(1),
 });
 
-export const CheckoutSessionInputSchema = z.object({
-  orderId: z.string(),
-  amount: z.number().positive(),
-  currency: z.string().default('USD'),
-  items: z.array(PaymentLineItemSchema),
-  customerEmail: z.string().email().optional(),
-  successUrl: z.string().url(),
-  cancelUrl: z.string().url(),
-  metadata: z.record(z.string(), z.string()).optional(),
+export const AssetAmountSchema = z.object({
+  assetId: z.string().min(1),
+  amount: z.string().regex(/^\d+$/, 'Amount must be a string integer in smallest units'),
 });
 
-export const CheckoutSessionOutputSchema = z.object({
+export const ThemeSchema = z.object({
+  brandColor: z.string().optional(),
+  logoUrl: z.string().url().optional(),
+  buttonText: z.string().optional(),
+});
+
+export const CreateCheckoutSessionInputSchema = z.object({
+  amount: AssetAmountSchema,
+  recipient: PartySchema,
+  theme: ThemeSchema.optional(),
+  successUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
+});
+
+export const CheckoutSessionSchema = z.object({
   sessionId: z.string(),
-  url: z.string().url(),
+  status: z.enum(['CREATED', 'PENDING', 'COMPLETED', 'EXPIRED', 'CANCELLED']),
+  paymentId: z.string().nullable().optional(),
+  amount: AssetAmountSchema,
+  recipient: PartySchema,
+  theme: ThemeSchema.optional(),
+  successUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional(),
+  createdAt: z.string(),
+  expiresAt: z.string().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
-export const WebhookInputSchema = z.object({
-  body: z.string(),
-  signature: z.string(),
-});
-
-export const WebhookOutputSchema = z.object({
-  received: z.boolean(),
-  eventType: z.string().optional(),
-  orderId: z.string().optional(),
-});
-
-export const GetSessionInputSchema = z.object({
+export const GetCheckoutSessionInputSchema = z.object({
   sessionId: z.string(),
 });
 
-export const GetSessionOutputSchema = z.object({
-  session: z.object({
-    id: z.string(),
-    status: z.string(),
-    paymentStatus: z.string(),
-    amountTotal: z.number().optional(),
-    currency: z.string().optional(),
-    metadata: z.record(z.string(), z.string()).optional(),
-  }),
+export const CreateCheckoutSessionResponseSchema = z.object({
+  session: CheckoutSessionSchema,
+  sessionUrl: z.string().url(),
 });
 
-export type PaymentLineItem = z.infer<typeof PaymentLineItemSchema>;
-export type CheckoutSessionInput = z.infer<typeof CheckoutSessionInputSchema>;
-export type CheckoutSessionOutput = z.infer<typeof CheckoutSessionOutputSchema>;
-export type WebhookInput = z.infer<typeof WebhookInputSchema>;
-export type WebhookOutput = z.infer<typeof WebhookOutputSchema>;
-export type GetSessionInput = z.infer<typeof GetSessionInputSchema>;
-export type GetSessionOutput = z.infer<typeof GetSessionOutputSchema>;
+export const GetCheckoutSessionResponseSchema = z.object({
+  session: CheckoutSessionSchema,
+});
+
+export const PaymentRequestSchema = z.object({
+  payer: PartySchema,
+  recipient: PartySchema,
+  asset: AssetAmountSchema,
+  memo: z.string().optional(),
+  idempotencyKey: z.string(),
+});
+
+export const PaymentSchema = z.object({
+  paymentId: z.string(),
+  status: z.enum(['PENDING', 'SUCCESS', 'FAILED']),
+  request: PaymentRequestSchema,
+  feeQuote: z.object({
+    totalFee: AssetAmountSchema,
+  }).optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const PreparePaymentResponseSchema = z.object({
+  payment: PaymentSchema,
+});
+
+export const SubmitPaymentInputSchema = z.object({
+  paymentId: z.string(),
+  signedPayload: z.any(),
+  idempotencyKey: z.string(),
+});
+
+export const SubmitPaymentResponseSchema = z.object({
+  payment: PaymentSchema,
+});
+
+export const GetPaymentInputSchema = z.object({
+  paymentId: z.string(),
+});
+
+export const GetPaymentResponseSchema = z.object({
+  payment: PaymentSchema,
+});
+
+export type Party = z.infer<typeof PartySchema>;
+export type AssetAmount = z.infer<typeof AssetAmountSchema>;
+export type Theme = z.infer<typeof ThemeSchema>;
+export type CreateCheckoutSessionInput = z.infer<typeof CreateCheckoutSessionInputSchema>;
+export type CheckoutSession = z.infer<typeof CheckoutSessionSchema>;
+export type GetCheckoutSessionInput = z.infer<typeof GetCheckoutSessionInputSchema>;
+export type CreateCheckoutSessionResponse = z.infer<typeof CreateCheckoutSessionResponseSchema>;
+export type GetCheckoutSessionResponse = z.infer<typeof GetCheckoutSessionResponseSchema>;
+export type PaymentRequest = z.infer<typeof PaymentRequestSchema>;
+export type Payment = z.infer<typeof PaymentSchema>;
+export type PreparePaymentResponse = z.infer<typeof PreparePaymentResponseSchema>;
+export type SubmitPaymentInput = z.infer<typeof SubmitPaymentInputSchema>;
+export type SubmitPaymentResponse = z.infer<typeof SubmitPaymentResponseSchema>;
+export type GetPaymentInput = z.infer<typeof GetPaymentInputSchema>;
+export type GetPaymentResponse = z.infer<typeof GetPaymentResponseSchema>;
