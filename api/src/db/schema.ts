@@ -21,10 +21,10 @@ export const checkoutSessions = sqliteTable(
     expiresAt: text("expires_at"),
     metadataJson: text("metadata_json"),
   },
-  (table) => ({
-    merchantIdx: index("idx_checkout_sessions_merchant").on(table.merchantId),
-    statusIdx: index("idx_checkout_sessions_status").on(table.status),
-  })
+  (table) => ([
+    index("idx_checkout_sessions_merchant").on(table.merchantId),
+    index("idx_checkout_sessions_status").on(table.status),
+  ])
 );
 
 export const payments = sqliteTable(
@@ -48,13 +48,12 @@ export const payments = sqliteTable(
     createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
     updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
   },
-  (table) => ({
-    merchantIdempotencyIdx: uniqueIndex("idx_payments_merchant_idem").on(
+  (table) => ([uniqueIndex("idx_payments_merchant_idem").on(
       table.merchantId,
       table.idempotencyKey
     ),
-    merchantIdx: index("idx_payments_merchant").on(table.merchantId),
-  })
+    index("idx_payments_merchant").on(table.merchantId),
+  ])
 );
 
 export const pingLinks = sqliteTable(
@@ -76,14 +75,13 @@ export const pingLinks = sqliteTable(
     expiresAt: text("expires_at"),
     deletedAt: text("deleted_at"),
   },
-  (table) => ({
-    merchantIdempotencyIdx: uniqueIndex("idx_ping_links_merchant_idem").on(
+  (table) => ([uniqueIndex("idx_ping_links_merchant_idem").on(
       table.merchantId,
       table.idempotencyKey
     ),
-    merchantIdx: index("idx_ping_links_merchant").on(table.merchantId),
-    statusIdx: index("idx_ping_links_status").on(table.status),
-  })
+    index("idx_ping_links_merchant").on(table.merchantId),
+    index("idx_ping_links_status").on(table.status),
+  ])
 );
 
 export const webhookSubscriptions = sqliteTable(
@@ -95,9 +93,9 @@ export const webhookSubscriptions = sqliteTable(
     createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
     deletedAt: text("deleted_at"),
   },
-  (table) => ({
-    merchantIdx: index("idx_webhook_subscriptions_merchant").on(table.merchantId),
-  })
+  (table) => ([
+    index("idx_webhook_subscriptions_merchant").on(table.merchantId),
+  ])
 );
 
 export const webhooks = sqliteTable("webhooks", {
@@ -141,11 +139,11 @@ export const payLinkAllowlist = sqliteTable(
     wallet: text("wallet").notNull(),
     createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
   },
-  (table) => ({
-    pk: uniqueIndex("pay_link_allowlist_pk").on(table.payLinkId, table.wallet),
-    paylinkIdx: index("idx_allowlist_paylink").on(table.payLinkId),
-    walletIdx: index("idx_allowlist_wallet").on(table.wallet),
-  })
+  (table) => ([
+    uniqueIndex("pay_link_allowlist_pk").on(table.payLinkId, table.wallet),
+    index("idx_allowlist_paylink").on(table.payLinkId),
+    index("idx_allowlist_wallet").on(table.wallet),
+  ])
 );
 
 export const payLinks = sqliteTable(
@@ -159,7 +157,7 @@ export const payLinks = sqliteTable(
     createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
     updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
   },
-  (table) => ({
-    createdIdx: index("idx_paylinks_created").on(table.createdAt),
-  })
+  (table) => ([
+    index("idx_paylinks_created").on(table.createdAt),
+  ])
 );

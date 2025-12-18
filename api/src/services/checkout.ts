@@ -1,14 +1,14 @@
 import { Effect } from 'every-plugin/effect';
 import { eq } from 'drizzle-orm';
-import type { Database } from '@/db';
-import { checkoutSessions } from '@/db/schema';
+import type { Database } from '../db';
+import { checkoutSessions } from '../db/schema';
 import type {
   CreateCheckoutSessionInput,
   CreateCheckoutSessionResponse,
   GetCheckoutSessionInput,
   GetCheckoutSessionResponse,
   CheckoutSession,
-} from '@/schema';
+} from '../schema';
 import { randomBytes } from 'crypto';
 
 export class CheckoutSessionNotFoundError extends Error {

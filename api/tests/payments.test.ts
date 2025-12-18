@@ -1,8 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getPluginClient, teardown } from './setup';
 import { createDatabase } from '@/db';
 import { payments } from '@/db/schema';
 import { migrate } from 'drizzle-orm/libsql/migrator';
+import { eq } from 'drizzle-orm';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -19,6 +20,20 @@ describe('Payments Integration Tests', () => {
 
   beforeEach(async () => {
     await db.delete(payments);
+    
+    global.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ 
+          success: true, 
+          executionId: 'exec_123',
+          intentId: 'intent_456',
+          depositAddress: 'deposit_789',
+          status: 'success'
+        }),
+      } as Response)
+    );
   });
 
   afterAll(async () => {
@@ -254,6 +269,200 @@ describe('Payments Integration Tests', () => {
           idempotencyKey: 'submit-idem-4',
         })
       ).rejects.toThrow();
+    });
+
+    it('stores settlement refs from execution response', async () => {
+      const client = await getPluginClient({ nearAccountId: 'test-merchant.near' });
+      
+      const prepareResult = await client.payments.prepare({
+        request: {
+          payer: {
+            address: 'payer.near',
+            chainId: 'near:mainnet',
+          },
+          recipient: {
+            address: 'merchant.near',
+            chainId: 'near:mainnet',
+          },
+          asset: {
+            assetId: 'usdc.near',
+            amount: '1000000',
+          },
+          memo: 'settlement test',
+          idempotencyKey: 'settlement-1',
+        },
+      });
+
+      await client.payments.submit({
+        paymentId: prepareResult.payment.paymentId,
+        signedPayload: { proof: 'demo' },
+        idempotencyKey: 'submit-idem-5',
+      });
+
+      const dbResult = await db.select().from(payments).where(eq(payments.id, prepareResult.payment.paymentId));
+      expect(dbResult).toHaveLength(1);
+      expect(dbResult[0]?.settlementRefs).toBeDefined();
+      
+      const settlementRefs = JSON.parse(dbResult[0]?.settlementRefs || '{}');
+      expect(settlementRefs.intentId).toBe('intent_456');
+      expect(settlementRefs.depositAddress).toBe('deposit_789');
+      expect(settlementRefs.executionId).toBe('exec_123');
+    });
+
+    it('handles provider auth errors', async () => {
+      global.fetch = vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 401,
+          json: () => Promise.resolve({ message: 'Unauthorized' }),
+        } as Response)
+      );
+
+      const client = await getPluginClient({ nearAccountId: 'test-merchant.near' });
+      
+      const prepareResult = await client.payments.prepare({
+        request: {
+          payer: {
+            address: 'payer.near',
+            chainId: 'near:mainnet',
+          },
+          recipient: {
+            address: 'merchant.near',
+            chainId: 'near:mainnet',
+          },
+          asset: {
+            assetId: 'usdc.near',
+            amount: '1000000',
+          },
+          idempotencyKey: 'auth-error-1',
+        },
+      });
+
+      await expect(
+        client.payments.submit({
+          paymentId: prepareResult.payment.paymentId,
+          signedPayload: { proof: 'demo' },
+          idempotencyKey: 'submit-auth-1',
+        })
+      ).rejects.toThrow();
+    });
+
+    it('handles provider rate limit errors', async () => {
+      global.fetch = vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 429,
+          json: () => Promise.resolve({ message: 'Too many requests' }),
+        } as Response)
+      );
+
+      const client = await getPluginClient({ nearAccountId: 'test-merchant.near' });
+      
+      const prepareResult = await client.payments.prepare({
+        request: {
+          payer: {
+            address: 'payer.near',
+            chainId: 'near:mainnet',
+          },
+          recipient: {
+            address: 'merchant.near',
+            chainId: 'near:mainnet',
+          },
+          asset: {
+            assetId: 'usdc.near',
+            amount: '1000000',
+          },
+          idempotencyKey: 'rate-limit-1',
+        },
+      });
+
+      await expect(
+        client.payments.submit({
+          paymentId: prepareResult.payment.paymentId,
+          signedPayload: { proof: 'demo' },
+          idempotencyKey: 'submit-rate-1',
+        })
+      ).rejects.toThrow();
+    });
+
+    it('handles provider validation errors', async () => {
+      global.fetch = vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          json: () => Promise.resolve({ message: 'amount must be a number string' }),
+        } as Response)
+      );
+
+      const client = await getPluginClient({ nearAccountId: 'test-merchant.near' });
+      
+      const prepareResult = await client.payments.prepare({
+        request: {
+          payer: {
+            address: 'payer.near',
+            chainId: 'near:mainnet',
+          },
+          recipient: {
+            address: 'merchant.near',
+            chainId: 'near:mainnet',
+          },
+          asset: {
+            assetId: 'usdc.near',
+            amount: '1000000',
+          },
+          idempotencyKey: 'validation-1',
+        },
+      });
+
+      await expect(
+        client.payments.submit({
+          paymentId: prepareResult.payment.paymentId,
+          signedPayload: { proof: 'demo' },
+          idempotencyKey: 'submit-validation-1',
+        })
+      ).rejects.toThrow();
+    });
+
+    it('marks payment as PENDING when execution returns pending status', async () => {
+      global.fetch = vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ 
+            executionId: 'exec_pending',
+            status: 'pending',
+            depositAddress: 'deposit_pending'
+          }),
+        } as Response)
+      );
+
+      const client = await getPluginClient({ nearAccountId: 'test-merchant.near' });
+      
+      const prepareResult = await client.payments.prepare({
+        request: {
+          payer: {
+            address: 'payer.near',
+            chainId: 'near:mainnet',
+          },
+          recipient: {
+            address: 'merchant.near',
+            chainId: 'near:mainnet',
+          },
+          asset: {
+            assetId: 'usdc.near',
+            amount: '1000000',
+          },
+          idempotencyKey: 'pending-1',
+        },
+      });
+
+      const result = await client.payments.submit({
+        paymentId: prepareResult.payment.paymentId,
+        signedPayload: { proof: 'demo' },
+        idempotencyKey: 'submit-pending-1',
+      });
+
+      expect(result.payment.status).toBe('PENDING');
     });
   });
 });

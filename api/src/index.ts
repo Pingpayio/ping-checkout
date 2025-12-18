@@ -16,6 +16,7 @@ export default createPlugin({
   secrets: z.object({
     DATABASE_URL: z.string().default('file:./api.db'),
     DATABASE_AUTH_TOKEN: z.string().optional(),
+    NEAR_INTENTS_API_KEY: z.string().optional(),
   }),
 
   context: z.object({
@@ -29,9 +30,12 @@ export default createPlugin({
       const dbLayer = DatabaseLive(config.secrets.DATABASE_URL, config.secrets.DATABASE_AUTH_TOKEN);
       const db = yield* Effect.provide(Database, dbLayer);
 
+      const checkoutService = new CheckoutService(db);
+      const paymentsService = new PaymentsService(db, config.secrets.NEAR_INTENTS_API_KEY);
+
       console.log('[API] Plugin initialized');
 
-      return { db };
+      return { db, checkoutService, paymentsService };
     }),
 
   shutdown: (context) =>
@@ -40,9 +44,7 @@ export default createPlugin({
     }),
 
   createRouter: (context, builder) => {
-    const { db } = context;
-    const checkoutService = new CheckoutService(db);
-    const paymentsService = new PaymentsService(db);
+    const { checkoutService, paymentsService } = context;
 
     const requireAuth = builder.middleware(async ({ context, next }) => {
       if (!context.nearAccountId) {

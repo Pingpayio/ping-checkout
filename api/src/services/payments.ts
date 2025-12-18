@@ -1,7 +1,7 @@
 import { Effect } from 'every-plugin/effect';
 import { eq, and } from 'drizzle-orm';
-import type { Database } from '@/db';
-import { payments } from '@/db/schema';
+import type { Database } from '../db';
+import { payments } from '../db/schema';
 import type {
   PaymentRequest,
   PreparePaymentResponse,
@@ -10,7 +10,7 @@ import type {
   GetPaymentInput,
   GetPaymentResponse,
   Payment,
-} from '@/schema';
+} from '../schema';
 import { randomBytes } from 'crypto';
 
 export class PaymentNotFoundError extends Error {
@@ -27,8 +27,212 @@ export class PaymentAlreadyFinalizedError extends Error {
   }
 }
 
+export class ProviderAuthError extends Error {
+  readonly _tag = 'ProviderAuthError';
+  constructor(message: string = 'Authentication failed with payment provider') {
+    super(message);
+  }
+}
+
+export class ProviderRateLimitError extends Error {
+  readonly _tag = 'ProviderRateLimitError';
+  constructor(message: string = 'Rate limit exceeded. Please try again later') {
+    super(message);
+  }
+}
+
+export class ProviderValidationError extends Error {
+  readonly _tag = 'ProviderValidationError';
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export class ProviderError extends Error {
+  readonly _tag = 'ProviderError';
+  constructor(message: string = 'Payment provider error') {
+    super(message);
+  }
+}
+
+interface ExecutionResponse {
+  depositAddress?: string;
+  intentId?: string;
+  quoteId?: string;
+  executionId?: string;
+  txHash?: string;
+  txId?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
+interface StatusResponse {
+  status: 'SUCCESS' | 'REFUNDED' | 'PENDING' | string;
+  txId?: string;
+  txHash?: string;
+  transactionId?: string;
+  reason?: string;
+  message?: string;
+  error?: string;
+}
+
 export class PaymentsService {
-  constructor(private db: Database) {}
+  private readonly ONECLICK_BASE_URL = 'https://1click.chaindefuser.com';
+  
+  constructor(
+    private db: Database,
+    private apiKey?: string
+  ) {}
+
+  private executeOneClick(payload: unknown): Effect.Effect<ExecutionResponse, Error> {
+    return Effect.gen(this, function* (_) {
+      const possibleEndpoints = ['v0/execute', 'v0/intents', 'v0/create', 'execute'];
+      let lastError: Error | null = null;
+      
+      for (const endpoint of possibleEndpoints) {
+        const url = `${this.ONECLICK_BASE_URL}/${endpoint}`.replace(/([^:]\/)\/+/g, '$1');
+        
+        try {
+          const result = yield* _(
+            Effect.tryPromise({
+              try: async () => {
+                const headers: Record<string, string> = {
+                  'Content-Type': 'application/json',
+                };
+                
+                if (this.apiKey) {
+                  headers['Authorization'] = `Bearer ${this.apiKey}`;
+                }
+                
+                const response = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify(payload),
+                });
+                
+                if (response.status === 404) {
+                  throw new Error('NOT_FOUND');
+                }
+                
+                const data = await response.json().catch(() => ({})) as { message?: string; [key: string]: unknown };
+                
+                if (response.status === 401 || response.status === 403) {
+                  throw new ProviderAuthError(data.message || 'Authentication failed');
+                }
+                
+                if (response.status === 429) {
+                  throw new ProviderRateLimitError(data.message || 'Rate limit exceeded');
+                }
+                
+                if (response.status >= 500) {
+                  throw new ProviderError(data.message || 'Provider service error');
+                }
+                
+                if (response.status >= 400) {
+                  const message = data.message || 'Validation error';
+                  if (message.includes('tokenOut is not valid')) {
+                    throw new ProviderValidationError('Payout token not supported');
+                  } else if (message.includes('amount must be a number string') || message.includes('Amount is too low')) {
+                    throw new ProviderValidationError('Amount must be greater than 0');
+                  } else if (message.includes('recipient/refundTo should not be empty')) {
+                    throw new ProviderValidationError('Recipient address required');
+                  } else if (message.includes('slippageTolerance') || message.includes('deadline must be ISO 8601')) {
+                    throw new ProviderValidationError('Invalid request parameters');
+                  } else {
+                    throw new ProviderValidationError(message);
+                  }
+                }
+                
+                if (!response.ok) {
+                  const text = await response.text().catch(() => '');
+                  throw new Error(`One-Click /${endpoint} failed (${response.status}): ${text}`);
+                }
+                
+                return data as ExecutionResponse;
+              },
+              catch: (error) => {
+                if (error instanceof Error) {
+                  return error;
+                }
+                return new Error(`Failed to execute payment: ${String(error)}`);
+              },
+            })
+          );
+          
+          return result;
+        } catch (error) {
+          if (error instanceof Error && error.message === 'NOT_FOUND') {
+            continue;
+          }
+          
+          if (error instanceof ProviderAuthError || 
+              error instanceof ProviderRateLimitError || 
+              error instanceof ProviderValidationError || 
+              error instanceof ProviderError) {
+            return yield* _(Effect.fail(error));
+          }
+          
+          lastError = error instanceof Error ? error : new Error(String(error));
+        }
+      }
+      
+      return yield* _(Effect.fail(lastError || new Error('No valid execute endpoint found. Tried: ' + possibleEndpoints.join(', '))));
+    });
+  }
+
+  getIntentsStatus(depositAddress: string): Effect.Effect<StatusResponse, Error> {
+    return Effect.gen(this, function* (_) {
+      const url = `${this.ONECLICK_BASE_URL}/v0/status`;
+      
+      const result = yield* _(
+        Effect.tryPromise({
+          try: async () => {
+            const headers: Record<string, string> = {};
+            
+            if (this.apiKey) {
+              headers['Authorization'] = `Bearer ${this.apiKey}`;
+            }
+            
+            const queryUrl = new URL(url);
+            queryUrl.searchParams.set('depositAddress', depositAddress);
+            
+            const response = await fetch(queryUrl.toString(), {
+              method: 'GET',
+              headers,
+            });
+            
+            if (response.status === 404) {
+              return { status: 'PENDING' } as StatusResponse;
+            }
+            
+            if (!response.ok) {
+              console.error(`Status check failed: ${response.status}`);
+              return { status: 'PENDING' } as StatusResponse;
+            }
+            
+            const data = await response.json() as StatusResponse;
+            
+            if (data.status === 'completed' || data.status === 'success') {
+              return {
+                status: 'SUCCESS',
+                txId: data.txId || data.transactionId || data.txHash
+              } as StatusResponse;
+            } else if (data.status === 'failed' || data.status === 'error' || data.status === 'REFUNDED') {
+              return {
+                status: 'REFUNDED',
+                reason: data.reason || data.message || data.error || 'Transaction failed'
+              } as StatusResponse;
+            } else {
+              return { status: 'PENDING' } as StatusResponse;
+            }
+          },
+          catch: (error) => new Error(`Failed to check status: ${error instanceof Error ? error.message : String(error)}`),
+        })
+      );
+      
+      return result;
+    });
+  }
 
   preparePayment(
     merchantId: string,
@@ -228,7 +432,37 @@ export class PaymentsService {
         );
       }
 
+      let settlementRefs: Record<string, string> = {};
+      let finalStatus: Payment['status'] = 'SUCCESS';
+
+      if (this.apiKey && input.signedPayload) {
+        const executionResult = yield* _(this.executeOneClick(input.signedPayload));
+        
+        if (executionResult.depositAddress) {
+          settlementRefs.depositAddress = executionResult.depositAddress;
+        }
+        if (executionResult.intentId) {
+          settlementRefs.intentId = executionResult.intentId;
+        }
+        if (executionResult.quoteId) {
+          settlementRefs.quoteId = executionResult.quoteId;
+        }
+        if (executionResult.executionId) {
+          settlementRefs.executionId = executionResult.executionId;
+        }
+        if (executionResult.txHash || executionResult.txId) {
+          settlementRefs.txHash = executionResult.txHash || executionResult.txId || '';
+        }
+        
+        if (executionResult.status === 'pending' || executionResult.status === 'PENDING') {
+          finalStatus = 'PENDING';
+        }
+      }
+
       const now = new Date().toISOString();
+      const settlementRefsJson = Object.keys(settlementRefs).length > 0 
+        ? JSON.stringify(settlementRefs) 
+        : null;
 
       yield* _(
         Effect.tryPromise({
@@ -236,7 +470,8 @@ export class PaymentsService {
             this.db
               .update(payments)
               .set({
-                status: 'SUCCESS',
+                status: finalStatus,
+                settlementRefs: settlementRefsJson,
                 updatedAt: now,
               })
               .where(eq(payments.id, input.paymentId)),
@@ -246,7 +481,7 @@ export class PaymentsService {
 
       const payment: Payment = {
         paymentId: row.id,
-        status: 'SUCCESS',
+        status: finalStatus,
         request: {
           payer: {
             address: row.payerAddress,
