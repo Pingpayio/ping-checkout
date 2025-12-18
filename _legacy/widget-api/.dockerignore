@@ -1,0 +1,14 @@
+.git/
+.github/
+.vscode/
+node_modules/
+docs/
+**/*.md
+**/*.spec.*
+**/*.test.*
+.env*
+quotes.db
+
+
+
+

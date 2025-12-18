@@ -4,8 +4,10 @@ import { ORPCError } from 'every-plugin/orpc';
 import { z } from 'every-plugin/zod';
 import { contract } from './contract';
 import { Database, DatabaseLive } from './store';
-import { kvStore } from './db/schema';
 import { eq } from 'drizzle-orm';
+import { CheckoutService, CheckoutSessionNotFoundError } from './services/checkout';
+import { PaymentsService, PaymentNotFoundError, PaymentAlreadyFinalizedError } from './services/payments';
+import { createDatabase } from './db';
 
 export default createPlugin({
   variables: z.object({
@@ -14,6 +16,7 @@ export default createPlugin({
   secrets: z.object({
     DATABASE_URL: z.string().default('file:./api.db'),
     DATABASE_AUTH_TOKEN: z.string().optional(),
+    NEAR_INTENTS_API_KEY: z.string().optional(),
   }),
 
   context: z.object({
@@ -27,9 +30,12 @@ export default createPlugin({
       const dbLayer = DatabaseLive(config.secrets.DATABASE_URL, config.secrets.DATABASE_AUTH_TOKEN);
       const db = yield* Effect.provide(Database, dbLayer);
 
+      const checkoutService = new CheckoutService(db);
+      const paymentsService = new PaymentsService(db, config.secrets.NEAR_INTENTS_API_KEY);
+
       console.log('[API] Plugin initialized');
 
-      return { db };
+      return { db, checkoutService, paymentsService };
     }),
 
   shutdown: (context) =>
@@ -38,7 +44,7 @@ export default createPlugin({
     }),
 
   createRouter: (context, builder) => {
-    const { db } = context;
+    const { checkoutService, paymentsService } = context;
 
     const requireAuth = builder.middleware(async ({ context, next }) => {
       if (!context.nearAccountId) {
@@ -62,88 +68,104 @@ export default createPlugin({
         };
       }),
 
-      protected: builder.protected
-        .use(requireAuth)
-        .handler(async ({ context }) => {
-          return {
-            message: 'This is a protected endpoint',
-            accountId: context.nearAccountId,
-            timestamp: new Date().toISOString(),
-          };
-        }),
-
-      getValue: builder.getValue
-        .use(requireAuth)
-        .handler(async ({ input, context }) => {
-          const [record] = await db
-            .select()
-            .from(kvStore)
-            .where(eq(kvStore.key, input.key))
-            .limit(1);
-
-          if (!record) {
-            throw new ORPCError('NOT_FOUND', {
-              message: 'Key not found',
-            });
-          }
-
-          if (record.nearAccountId !== context.nearAccountId) {
-            throw new ORPCError('FORBIDDEN', {
-              message: 'Access denied',
-            });
-          }
-
-          return {
-            key: record.key,
-            value: record.value,
-            updatedAt: record.updatedAt.toISOString(),
-          };
-        }),
-
-      setValue: builder.setValue
-        .use(requireAuth)
-        .handler(async ({ input, context }) => {
-          const now = new Date();
+      checkout: {
+        createSession: builder.checkout.createSession.handler(async ({ input, context }) => {
+          const merchantId = context.nearAccountId || 'anonymous';
           
-          const [existing] = await db
-            .select()
-            .from(kvStore)
-            .where(eq(kvStore.key, input.key))
-            .limit(1);
+          try {
+            const result = await Effect.runPromise(
+              checkoutService.createSession(merchantId, input)
+            );
+            return result;
+          } catch (error) {
+            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+              message: error instanceof Error ? error.message : 'Failed to create session',
+            });
+          }
+        }),
 
-          let created = false;
-
-          if (existing) {
-            if (existing.nearAccountId !== context.nearAccountId) {
-              throw new ORPCError('FORBIDDEN', {
-                message: 'Access denied',
+        getSession: builder.checkout.getSession.handler(async ({ input, context }) => {
+          const merchantId = context.nearAccountId || 'anonymous';
+          
+          try {
+            const result = await Effect.runPromise(
+              checkoutService.getSession(merchantId, input)
+            );
+            return result;
+          } catch (error) {
+            if (error instanceof CheckoutSessionNotFoundError) {
+              throw new ORPCError('NOT_FOUND', {
+                message: error.message,
               });
             }
-
-            await db
-              .update(kvStore)
-              .set({
-                value: input.value,
-                updatedAt: now,
-              })
-              .where(eq(kvStore.key, input.key));
-          } else {
-            await db.insert(kvStore).values({
-              key: input.key,
-              value: input.value,
-              nearAccountId: context.nearAccountId,
-              createdAt: now,
-              updatedAt: now,
+            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+              message: error instanceof Error ? error.message : 'Failed to fetch session',
             });
-            created = true;
           }
-
-          return {
-            key: input.key,
-            value: input.value,
-            created,
-          };
         }),
+      },
+
+      payments: {
+        prepare: builder.payments.prepare.handler(async ({ input, context }) => {
+          const merchantId = context.nearAccountId || 'anonymous';
+          
+          try {
+            const result = await Effect.runPromise(
+              paymentsService.preparePayment(merchantId, input.request)
+            );
+            return result;
+          } catch (error) {
+            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+              message: error instanceof Error ? error.message : 'Failed to prepare payment',
+            });
+          }
+        }),
+
+        submit: builder.payments.submit.handler(async ({ input, context }) => {
+          const merchantId = context.nearAccountId || 'anonymous';
+          
+          try {
+            const result = await Effect.runPromise(
+              paymentsService.submitPayment(merchantId, input)
+            );
+            return result;
+          } catch (error) {
+            if (error instanceof PaymentNotFoundError) {
+              throw new ORPCError('NOT_FOUND', {
+                message: error.message,
+              });
+            }
+            if (error instanceof PaymentAlreadyFinalizedError) {
+              throw new ORPCError('CONFLICT', {
+                message: error.message,
+              });
+            }
+            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+              message: error instanceof Error ? error.message : 'Failed to submit payment',
+            });
+          }
+        }),
+
+        get: builder.payments.get.handler(async ({ input, context }) => {
+          const merchantId = context.nearAccountId || 'anonymous';
+          
+          try {
+            const result = await Effect.runPromise(
+              paymentsService.getPayment(merchantId, input)
+            );
+            return result;
+          } catch (error) {
+            if (error instanceof PaymentNotFoundError) {
+              throw new ORPCError('NOT_FOUND', {
+                message: error.message,
+              });
+            }
+            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+              message: error instanceof Error ? error.message : 'Failed to get payment',
+            });
+          }
+        }),
+      },
     }
   },
 });

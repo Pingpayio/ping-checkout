@@ -1,5 +1,17 @@
 import { oc } from 'every-plugin/orpc';
 import { z } from 'every-plugin/zod';
+import {
+  CreateCheckoutSessionInputSchema,
+  CreateCheckoutSessionResponseSchema,
+  GetCheckoutSessionInputSchema,
+  GetCheckoutSessionResponseSchema,
+  PaymentRequestSchema,
+  PreparePaymentResponseSchema,
+  SubmitPaymentInputSchema,
+  SubmitPaymentResponseSchema,
+  GetPaymentInputSchema,
+  GetPaymentResponseSchema,
+} from './schema';
 
 export const contract = oc.router({
   ping: oc
@@ -9,36 +21,34 @@ export const contract = oc.router({
       timestamp: z.iso.datetime(),
     })),
 
-  protected: oc
-    .route({ method: 'GET', path: '/protected' })
-    .output(z.object({
-      message: z.string(),
-      accountId: z.string(),
-      timestamp: z.iso.datetime(),
-    })),
+  checkout: oc.router({
+    createSession: oc
+      .route({ method: 'POST', path: '/checkout/sessions' })
+      .input(CreateCheckoutSessionInputSchema)
+      .output(CreateCheckoutSessionResponseSchema),
 
-  getValue: oc
-    .route({ method: 'GET', path: '/kv/{key}' })
-    .input(z.object({
-      key: z.string(),
-    }))
-    .output(z.object({
-      key: z.string(),
-      value: z.string(),
-      updatedAt: z.iso.datetime(),
-    })),
+    getSession: oc
+      .route({ method: 'GET', path: '/checkout/sessions/{sessionId}' })
+      .input(GetCheckoutSessionInputSchema)
+      .output(GetCheckoutSessionResponseSchema),
+  }),
 
-  setValue: oc
-    .route({ method: 'POST', path: '/kv/{key}' })
-    .input(z.object({
-      key: z.string(),
-      value: z.string(),
-    }))
-    .output(z.object({
-      key: z.string(),
-      value: z.string(),
-      created: z.boolean(),
-    })),
+  payments: oc.router({
+    prepare: oc
+      .route({ method: 'POST', path: '/payments/prepare' })
+      .input(z.object({ request: PaymentRequestSchema }))
+      .output(PreparePaymentResponseSchema),
+
+    submit: oc
+      .route({ method: 'POST', path: '/payments/submit' })
+      .input(SubmitPaymentInputSchema)
+      .output(SubmitPaymentResponseSchema),
+
+    get: oc
+      .route({ method: 'GET', path: '/payments/{paymentId}' })
+      .input(GetPaymentInputSchema)
+      .output(GetPaymentResponseSchema),
+  }),
 });
 
 export type ContractType = typeof contract;

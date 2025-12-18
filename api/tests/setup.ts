@@ -3,7 +3,13 @@ import pluginDevConfig from '../plugin.dev';
 import { createPluginRuntime } from 'every-plugin';
 
 const TEST_PLUGIN_ID = pluginDevConfig.pluginId;
-const TEST_CONFIG = pluginDevConfig.config;
+const TEST_CONFIG = {
+  ...pluginDevConfig.config,
+  secrets: {
+    ...pluginDevConfig.config.secrets,
+    NEAR_INTENTS_API_KEY: 'test-api-key-123',
+  },
+};
 
 const TEST_REGISTRY = {
   [TEST_PLUGIN_ID]: {
@@ -17,9 +23,9 @@ export const runtime = createPluginRuntime({
   secrets: {},
 });
 
-export async function getPluginClient() {
+export async function getPluginClient(context?: { nearAccountId?: string }) {
   const { createClient } = await runtime.usePlugin(TEST_PLUGIN_ID, TEST_CONFIG);
-  return createClient();
+  return createClient(context);
 }
 
 export async function teardown() {
