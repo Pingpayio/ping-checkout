@@ -93,7 +93,6 @@ exposes: {
   './Router': './src/router.tsx',        // TanStack Router instance
   './components': './src/components/index.ts',  // Reusable components
   './providers': './src/providers/index.tsx',   // Context providers
-  './types': './src/types/index.ts'      // TypeScript types
 }
 ```
 

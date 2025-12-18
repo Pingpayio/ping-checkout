@@ -9,406 +9,211 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as CheckoutRouteImport } from './routes/_checkout'
-import { Route as CheckoutIndexRouteImport } from './routes/_checkout/index'
-import { Route as CheckoutSearchRouteImport } from './routes/_checkout/search'
-import { Route as CheckoutOrderConfirmationRouteImport } from './routes/_checkout/order-confirmation'
-import { Route as CheckoutLoginRouteImport } from './routes/_checkout/login'
-import { Route as CheckoutFavoritesRouteImport } from './routes/_checkout/favorites'
-import { Route as CheckoutCheckoutRouteImport } from './routes/_checkout/checkout'
-import { Route as CheckoutCartRouteImport } from './routes/_checkout/cart'
-import { Route as CheckoutPageRouteImport } from './routes/_checkout/_page'
-import { Route as CheckoutAuthenticatedRouteImport } from './routes/_checkout/_authenticated'
-import { Route as CheckoutPageTermsOfServiceRouteImport } from './routes/_checkout/_page/terms-of-service'
-import { Route as CheckoutPagePrivacyPolicyRouteImport } from './routes/_checkout/_page/privacy-policy'
-import { Route as CheckoutAuthenticatedAccountRouteImport } from './routes/_checkout/_authenticated/account'
-import { Route as CheckoutAuthenticatedAccountIndexRouteImport } from './routes/_checkout/_authenticated/account/index'
-import { Route as CheckoutAuthenticatedAccountOrdersRouteImport } from './routes/_checkout/_authenticated/account/orders'
-import { Route as CheckoutAuthenticatedAccountConnectedRouteImport } from './routes/_checkout/_authenticated/account/connected'
+import { Route as LayoutRouteImport } from './routes/_layout'
+import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
+import { Route as LayoutLoginRouteImport } from './routes/_layout/login'
+import { Route as LayoutPageRouteImport } from './routes/_layout/_page'
+import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authenticated'
+import { Route as LayoutPageTermsOfServiceRouteImport } from './routes/_layout/_page/terms-of-service'
+import { Route as LayoutPagePrivacyPolicyRouteImport } from './routes/_layout/_page/privacy-policy'
+import { Route as LayoutAuthenticatedDashboardRouteImport } from './routes/_layout/_authenticated/dashboard'
 
-const CheckoutRoute = CheckoutRouteImport.update({
-  id: '/_checkout',
+const LayoutRoute = LayoutRouteImport.update({
+  id: '/_layout',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CheckoutIndexRoute = CheckoutIndexRouteImport.update({
+const LayoutIndexRoute = LayoutIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => CheckoutRoute,
+  getParentRoute: () => LayoutRoute,
 } as any)
-const CheckoutSearchRoute = CheckoutSearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => CheckoutRoute,
-} as any)
-const CheckoutOrderConfirmationRoute =
-  CheckoutOrderConfirmationRouteImport.update({
-    id: '/order-confirmation',
-    path: '/order-confirmation',
-    getParentRoute: () => CheckoutRoute,
-  } as any)
-const CheckoutLoginRoute = CheckoutLoginRouteImport.update({
+const LayoutLoginRoute = LayoutLoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => CheckoutRoute,
+  getParentRoute: () => LayoutRoute,
 } as any)
-const CheckoutFavoritesRoute = CheckoutFavoritesRouteImport.update({
-  id: '/favorites',
-  path: '/favorites',
-  getParentRoute: () => CheckoutRoute,
-} as any)
-const CheckoutCheckoutRoute = CheckoutCheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => CheckoutRoute,
-} as any)
-const CheckoutCartRoute = CheckoutCartRouteImport.update({
-  id: '/cart',
-  path: '/cart',
-  getParentRoute: () => CheckoutRoute,
-} as any)
-const CheckoutPageRoute = CheckoutPageRouteImport.update({
+const LayoutPageRoute = LayoutPageRouteImport.update({
   id: '/_page',
-  getParentRoute: () => CheckoutRoute,
+  getParentRoute: () => LayoutRoute,
 } as any)
-const CheckoutAuthenticatedRoute = CheckoutAuthenticatedRouteImport.update({
+const LayoutAuthenticatedRoute = LayoutAuthenticatedRouteImport.update({
   id: '/_authenticated',
-  getParentRoute: () => CheckoutRoute,
+  getParentRoute: () => LayoutRoute,
 } as any)
-const CheckoutPageTermsOfServiceRoute =
-  CheckoutPageTermsOfServiceRouteImport.update({
+const LayoutPageTermsOfServiceRoute =
+  LayoutPageTermsOfServiceRouteImport.update({
     id: '/terms-of-service',
     path: '/terms-of-service',
-    getParentRoute: () => CheckoutPageRoute,
+    getParentRoute: () => LayoutPageRoute,
   } as any)
-const CheckoutPagePrivacyPolicyRoute =
-  CheckoutPagePrivacyPolicyRouteImport.update({
-    id: '/privacy-policy',
-    path: '/privacy-policy',
-    getParentRoute: () => CheckoutPageRoute,
-  } as any)
-const CheckoutAuthenticatedAccountRoute =
-  CheckoutAuthenticatedAccountRouteImport.update({
-    id: '/account',
-    path: '/account',
-    getParentRoute: () => CheckoutAuthenticatedRoute,
-  } as any)
-const CheckoutAuthenticatedAccountIndexRoute =
-  CheckoutAuthenticatedAccountIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => CheckoutAuthenticatedAccountRoute,
-  } as any)
-const CheckoutAuthenticatedAccountOrdersRoute =
-  CheckoutAuthenticatedAccountOrdersRouteImport.update({
-    id: '/orders',
-    path: '/orders',
-    getParentRoute: () => CheckoutAuthenticatedAccountRoute,
-  } as any)
-const CheckoutAuthenticatedAccountConnectedRoute =
-  CheckoutAuthenticatedAccountConnectedRouteImport.update({
-    id: '/connected',
-    path: '/connected',
-    getParentRoute: () => CheckoutAuthenticatedAccountRoute,
+const LayoutPagePrivacyPolicyRoute = LayoutPagePrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => LayoutPageRoute,
+} as any)
+const LayoutAuthenticatedDashboardRoute =
+  LayoutAuthenticatedDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => LayoutAuthenticatedRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/cart': typeof CheckoutCartRoute
-  '/checkout': typeof CheckoutCheckoutRoute
-  '/favorites': typeof CheckoutFavoritesRoute
-  '/login': typeof CheckoutLoginRoute
-  '/order-confirmation': typeof CheckoutOrderConfirmationRoute
-  '/search': typeof CheckoutSearchRoute
-  '/': typeof CheckoutIndexRoute
-  '/account': typeof CheckoutAuthenticatedAccountRouteWithChildren
-  '/privacy-policy': typeof CheckoutPagePrivacyPolicyRoute
-  '/terms-of-service': typeof CheckoutPageTermsOfServiceRoute
-  '/account/connected': typeof CheckoutAuthenticatedAccountConnectedRoute
-  '/account/orders': typeof CheckoutAuthenticatedAccountOrdersRoute
-  '/account/': typeof CheckoutAuthenticatedAccountIndexRoute
+  '/login': typeof LayoutLoginRoute
+  '/': typeof LayoutIndexRoute
+  '/dashboard': typeof LayoutAuthenticatedDashboardRoute
+  '/privacy-policy': typeof LayoutPagePrivacyPolicyRoute
+  '/terms-of-service': typeof LayoutPageTermsOfServiceRoute
 }
 export interface FileRoutesByTo {
-  '/cart': typeof CheckoutCartRoute
-  '/checkout': typeof CheckoutCheckoutRoute
-  '/favorites': typeof CheckoutFavoritesRoute
-  '/login': typeof CheckoutLoginRoute
-  '/order-confirmation': typeof CheckoutOrderConfirmationRoute
-  '/search': typeof CheckoutSearchRoute
-  '/': typeof CheckoutIndexRoute
-  '/privacy-policy': typeof CheckoutPagePrivacyPolicyRoute
-  '/terms-of-service': typeof CheckoutPageTermsOfServiceRoute
-  '/account/connected': typeof CheckoutAuthenticatedAccountConnectedRoute
-  '/account/orders': typeof CheckoutAuthenticatedAccountOrdersRoute
-  '/account': typeof CheckoutAuthenticatedAccountIndexRoute
+  '/login': typeof LayoutLoginRoute
+  '/': typeof LayoutIndexRoute
+  '/dashboard': typeof LayoutAuthenticatedDashboardRoute
+  '/privacy-policy': typeof LayoutPagePrivacyPolicyRoute
+  '/terms-of-service': typeof LayoutPageTermsOfServiceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_checkout': typeof CheckoutRouteWithChildren
-  '/_checkout/_authenticated': typeof CheckoutAuthenticatedRouteWithChildren
-  '/_checkout/_page': typeof CheckoutPageRouteWithChildren
-  '/_checkout/cart': typeof CheckoutCartRoute
-  '/_checkout/checkout': typeof CheckoutCheckoutRoute
-  '/_checkout/favorites': typeof CheckoutFavoritesRoute
-  '/_checkout/login': typeof CheckoutLoginRoute
-  '/_checkout/order-confirmation': typeof CheckoutOrderConfirmationRoute
-  '/_checkout/search': typeof CheckoutSearchRoute
-  '/_checkout/': typeof CheckoutIndexRoute
-  '/_checkout/_authenticated/account': typeof CheckoutAuthenticatedAccountRouteWithChildren
-  '/_checkout/_page/privacy-policy': typeof CheckoutPagePrivacyPolicyRoute
-  '/_checkout/_page/terms-of-service': typeof CheckoutPageTermsOfServiceRoute
-  '/_checkout/_authenticated/account/connected': typeof CheckoutAuthenticatedAccountConnectedRoute
-  '/_checkout/_authenticated/account/orders': typeof CheckoutAuthenticatedAccountOrdersRoute
-  '/_checkout/_authenticated/account/': typeof CheckoutAuthenticatedAccountIndexRoute
+  '/_layout': typeof LayoutRouteWithChildren
+  '/_layout/_authenticated': typeof LayoutAuthenticatedRouteWithChildren
+  '/_layout/_page': typeof LayoutPageRouteWithChildren
+  '/_layout/login': typeof LayoutLoginRoute
+  '/_layout/': typeof LayoutIndexRoute
+  '/_layout/_authenticated/dashboard': typeof LayoutAuthenticatedDashboardRoute
+  '/_layout/_page/privacy-policy': typeof LayoutPagePrivacyPolicyRoute
+  '/_layout/_page/terms-of-service': typeof LayoutPageTermsOfServiceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/cart'
-    | '/checkout'
-    | '/favorites'
     | '/login'
-    | '/order-confirmation'
-    | '/search'
     | '/'
-    | '/account'
+    | '/dashboard'
     | '/privacy-policy'
     | '/terms-of-service'
-    | '/account/connected'
-    | '/account/orders'
-    | '/account/'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/cart'
-    | '/checkout'
-    | '/favorites'
-    | '/login'
-    | '/order-confirmation'
-    | '/search'
-    | '/'
-    | '/privacy-policy'
-    | '/terms-of-service'
-    | '/account/connected'
-    | '/account/orders'
-    | '/account'
+  to: '/login' | '/' | '/dashboard' | '/privacy-policy' | '/terms-of-service'
   id:
     | '__root__'
-    | '/_checkout'
-    | '/_checkout/_authenticated'
-    | '/_checkout/_page'
-    | '/_checkout/cart'
-    | '/_checkout/checkout'
-    | '/_checkout/favorites'
-    | '/_checkout/login'
-    | '/_checkout/order-confirmation'
-    | '/_checkout/search'
-    | '/_checkout/'
-    | '/_checkout/_authenticated/account'
-    | '/_checkout/_page/privacy-policy'
-    | '/_checkout/_page/terms-of-service'
-    | '/_checkout/_authenticated/account/connected'
-    | '/_checkout/_authenticated/account/orders'
-    | '/_checkout/_authenticated/account/'
+    | '/_layout'
+    | '/_layout/_authenticated'
+    | '/_layout/_page'
+    | '/_layout/login'
+    | '/_layout/'
+    | '/_layout/_authenticated/dashboard'
+    | '/_layout/_page/privacy-policy'
+    | '/_layout/_page/terms-of-service'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  CheckoutRoute: typeof CheckoutRouteWithChildren
+  LayoutRoute: typeof LayoutRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_checkout': {
-      id: '/_checkout'
+    '/_layout': {
+      id: '/_layout'
       path: ''
       fullPath: ''
-      preLoaderRoute: typeof CheckoutRouteImport
+      preLoaderRoute: typeof LayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_checkout/': {
-      id: '/_checkout/'
+    '/_layout/': {
+      id: '/_layout/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof CheckoutIndexRouteImport
-      parentRoute: typeof CheckoutRoute
+      preLoaderRoute: typeof LayoutIndexRouteImport
+      parentRoute: typeof LayoutRoute
     }
-    '/_checkout/search': {
-      id: '/_checkout/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof CheckoutSearchRouteImport
-      parentRoute: typeof CheckoutRoute
-    }
-    '/_checkout/order-confirmation': {
-      id: '/_checkout/order-confirmation'
-      path: '/order-confirmation'
-      fullPath: '/order-confirmation'
-      preLoaderRoute: typeof CheckoutOrderConfirmationRouteImport
-      parentRoute: typeof CheckoutRoute
-    }
-    '/_checkout/login': {
-      id: '/_checkout/login'
+    '/_layout/login': {
+      id: '/_layout/login'
       path: '/login'
       fullPath: '/login'
-      preLoaderRoute: typeof CheckoutLoginRouteImport
-      parentRoute: typeof CheckoutRoute
+      preLoaderRoute: typeof LayoutLoginRouteImport
+      parentRoute: typeof LayoutRoute
     }
-    '/_checkout/favorites': {
-      id: '/_checkout/favorites'
-      path: '/favorites'
-      fullPath: '/favorites'
-      preLoaderRoute: typeof CheckoutFavoritesRouteImport
-      parentRoute: typeof CheckoutRoute
-    }
-    '/_checkout/checkout': {
-      id: '/_checkout/checkout'
-      path: '/checkout'
-      fullPath: '/checkout'
-      preLoaderRoute: typeof CheckoutCheckoutRouteImport
-      parentRoute: typeof CheckoutRoute
-    }
-    '/_checkout/cart': {
-      id: '/_checkout/cart'
-      path: '/cart'
-      fullPath: '/cart'
-      preLoaderRoute: typeof CheckoutCartRouteImport
-      parentRoute: typeof CheckoutRoute
-    }
-    '/_checkout/_page': {
-      id: '/_checkout/_page'
+    '/_layout/_page': {
+      id: '/_layout/_page'
       path: ''
       fullPath: ''
-      preLoaderRoute: typeof CheckoutPageRouteImport
-      parentRoute: typeof CheckoutRoute
+      preLoaderRoute: typeof LayoutPageRouteImport
+      parentRoute: typeof LayoutRoute
     }
-    '/_checkout/_authenticated': {
-      id: '/_checkout/_authenticated'
+    '/_layout/_authenticated': {
+      id: '/_layout/_authenticated'
       path: ''
       fullPath: ''
-      preLoaderRoute: typeof CheckoutAuthenticatedRouteImport
-      parentRoute: typeof CheckoutRoute
+      preLoaderRoute: typeof LayoutAuthenticatedRouteImport
+      parentRoute: typeof LayoutRoute
     }
-    '/_checkout/_page/terms-of-service': {
-      id: '/_checkout/_page/terms-of-service'
+    '/_layout/_page/terms-of-service': {
+      id: '/_layout/_page/terms-of-service'
       path: '/terms-of-service'
       fullPath: '/terms-of-service'
-      preLoaderRoute: typeof CheckoutPageTermsOfServiceRouteImport
-      parentRoute: typeof CheckoutPageRoute
+      preLoaderRoute: typeof LayoutPageTermsOfServiceRouteImport
+      parentRoute: typeof LayoutPageRoute
     }
-    '/_checkout/_page/privacy-policy': {
-      id: '/_checkout/_page/privacy-policy'
+    '/_layout/_page/privacy-policy': {
+      id: '/_layout/_page/privacy-policy'
       path: '/privacy-policy'
       fullPath: '/privacy-policy'
-      preLoaderRoute: typeof CheckoutPagePrivacyPolicyRouteImport
-      parentRoute: typeof CheckoutPageRoute
+      preLoaderRoute: typeof LayoutPagePrivacyPolicyRouteImport
+      parentRoute: typeof LayoutPageRoute
     }
-    '/_checkout/_authenticated/account': {
-      id: '/_checkout/_authenticated/account'
-      path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof CheckoutAuthenticatedAccountRouteImport
-      parentRoute: typeof CheckoutAuthenticatedRoute
-    }
-    '/_checkout/_authenticated/account/': {
-      id: '/_checkout/_authenticated/account/'
-      path: '/'
-      fullPath: '/account/'
-      preLoaderRoute: typeof CheckoutAuthenticatedAccountIndexRouteImport
-      parentRoute: typeof CheckoutAuthenticatedAccountRoute
-    }
-    '/_checkout/_authenticated/account/orders': {
-      id: '/_checkout/_authenticated/account/orders'
-      path: '/orders'
-      fullPath: '/account/orders'
-      preLoaderRoute: typeof CheckoutAuthenticatedAccountOrdersRouteImport
-      parentRoute: typeof CheckoutAuthenticatedAccountRoute
-    }
-    '/_checkout/_authenticated/account/connected': {
-      id: '/_checkout/_authenticated/account/connected'
-      path: '/connected'
-      fullPath: '/account/connected'
-      preLoaderRoute: typeof CheckoutAuthenticatedAccountConnectedRouteImport
-      parentRoute: typeof CheckoutAuthenticatedAccountRoute
+    '/_layout/_authenticated/dashboard': {
+      id: '/_layout/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof LayoutAuthenticatedDashboardRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
     }
   }
 }
 
-interface CheckoutAuthenticatedAccountRouteChildren {
-  CheckoutAuthenticatedAccountConnectedRoute: typeof CheckoutAuthenticatedAccountConnectedRoute
-  CheckoutAuthenticatedAccountOrdersRoute: typeof CheckoutAuthenticatedAccountOrdersRoute
-  CheckoutAuthenticatedAccountIndexRoute: typeof CheckoutAuthenticatedAccountIndexRoute
+interface LayoutAuthenticatedRouteChildren {
+  LayoutAuthenticatedDashboardRoute: typeof LayoutAuthenticatedDashboardRoute
 }
 
-const CheckoutAuthenticatedAccountRouteChildren: CheckoutAuthenticatedAccountRouteChildren =
-  {
-    CheckoutAuthenticatedAccountConnectedRoute:
-      CheckoutAuthenticatedAccountConnectedRoute,
-    CheckoutAuthenticatedAccountOrdersRoute:
-      CheckoutAuthenticatedAccountOrdersRoute,
-    CheckoutAuthenticatedAccountIndexRoute:
-      CheckoutAuthenticatedAccountIndexRoute,
-  }
-
-const CheckoutAuthenticatedAccountRouteWithChildren =
-  CheckoutAuthenticatedAccountRoute._addFileChildren(
-    CheckoutAuthenticatedAccountRouteChildren,
-  )
-
-interface CheckoutAuthenticatedRouteChildren {
-  CheckoutAuthenticatedAccountRoute: typeof CheckoutAuthenticatedAccountRouteWithChildren
+const LayoutAuthenticatedRouteChildren: LayoutAuthenticatedRouteChildren = {
+  LayoutAuthenticatedDashboardRoute: LayoutAuthenticatedDashboardRoute,
 }
 
-const CheckoutAuthenticatedRouteChildren: CheckoutAuthenticatedRouteChildren = {
-  CheckoutAuthenticatedAccountRoute:
-    CheckoutAuthenticatedAccountRouteWithChildren,
+const LayoutAuthenticatedRouteWithChildren =
+  LayoutAuthenticatedRoute._addFileChildren(LayoutAuthenticatedRouteChildren)
+
+interface LayoutPageRouteChildren {
+  LayoutPagePrivacyPolicyRoute: typeof LayoutPagePrivacyPolicyRoute
+  LayoutPageTermsOfServiceRoute: typeof LayoutPageTermsOfServiceRoute
 }
 
-const CheckoutAuthenticatedRouteWithChildren =
-  CheckoutAuthenticatedRoute._addFileChildren(
-    CheckoutAuthenticatedRouteChildren,
-  )
-
-interface CheckoutPageRouteChildren {
-  CheckoutPagePrivacyPolicyRoute: typeof CheckoutPagePrivacyPolicyRoute
-  CheckoutPageTermsOfServiceRoute: typeof CheckoutPageTermsOfServiceRoute
+const LayoutPageRouteChildren: LayoutPageRouteChildren = {
+  LayoutPagePrivacyPolicyRoute: LayoutPagePrivacyPolicyRoute,
+  LayoutPageTermsOfServiceRoute: LayoutPageTermsOfServiceRoute,
 }
 
-const CheckoutPageRouteChildren: CheckoutPageRouteChildren = {
-  CheckoutPagePrivacyPolicyRoute: CheckoutPagePrivacyPolicyRoute,
-  CheckoutPageTermsOfServiceRoute: CheckoutPageTermsOfServiceRoute,
-}
-
-const CheckoutPageRouteWithChildren = CheckoutPageRoute._addFileChildren(
-  CheckoutPageRouteChildren,
+const LayoutPageRouteWithChildren = LayoutPageRoute._addFileChildren(
+  LayoutPageRouteChildren,
 )
 
-interface CheckoutRouteChildren {
-  CheckoutAuthenticatedRoute: typeof CheckoutAuthenticatedRouteWithChildren
-  CheckoutPageRoute: typeof CheckoutPageRouteWithChildren
-  CheckoutCartRoute: typeof CheckoutCartRoute
-  CheckoutCheckoutRoute: typeof CheckoutCheckoutRoute
-  CheckoutFavoritesRoute: typeof CheckoutFavoritesRoute
-  CheckoutLoginRoute: typeof CheckoutLoginRoute
-  CheckoutOrderConfirmationRoute: typeof CheckoutOrderConfirmationRoute
-  CheckoutSearchRoute: typeof CheckoutSearchRoute
-  CheckoutIndexRoute: typeof CheckoutIndexRoute
+interface LayoutRouteChildren {
+  LayoutAuthenticatedRoute: typeof LayoutAuthenticatedRouteWithChildren
+  LayoutPageRoute: typeof LayoutPageRouteWithChildren
+  LayoutLoginRoute: typeof LayoutLoginRoute
+  LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
-const CheckoutRouteChildren: CheckoutRouteChildren = {
-  CheckoutAuthenticatedRoute: CheckoutAuthenticatedRouteWithChildren,
-  CheckoutPageRoute: CheckoutPageRouteWithChildren,
-  CheckoutCartRoute: CheckoutCartRoute,
-  CheckoutCheckoutRoute: CheckoutCheckoutRoute,
-  CheckoutFavoritesRoute: CheckoutFavoritesRoute,
-  CheckoutLoginRoute: CheckoutLoginRoute,
-  CheckoutOrderConfirmationRoute: CheckoutOrderConfirmationRoute,
-  CheckoutSearchRoute: CheckoutSearchRoute,
-  CheckoutIndexRoute: CheckoutIndexRoute,
+const LayoutRouteChildren: LayoutRouteChildren = {
+  LayoutAuthenticatedRoute: LayoutAuthenticatedRouteWithChildren,
+  LayoutPageRoute: LayoutPageRouteWithChildren,
+  LayoutLoginRoute: LayoutLoginRoute,
+  LayoutIndexRoute: LayoutIndexRoute,
 }
 
-const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
-  CheckoutRouteChildren,
-)
+const LayoutRouteWithChildren =
+  LayoutRoute._addFileChildren(LayoutRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  CheckoutRoute: CheckoutRouteWithChildren,
+  LayoutRoute: LayoutRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

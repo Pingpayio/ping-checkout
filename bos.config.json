@@ -8,7 +8,7 @@
     },
     "ui": {
       "development": "http://localhost:3002",
-      "production": "https://elliot-braem-1213-marketplace-ui-near-merch-store-b32b7b650-ze.zephyrcloud.app",
+      "production": "https://elliot-braem-1215-ui-ping-checkout-pingpayio-4ce2a4952-ze.zephyrcloud.app",
       "exposes": {
         "App": "./App",
         "components": "./components",
@@ -19,8 +19,7 @@
     "api": {
       "development": "http://localhost:3014",
       "production": "https://elliot-braem-1212-api-near-merch-stor-6a4c96dde-ze.zephyrcloud.app",
-      "variables": {
-      },
+      "variables": {},
       "secrets": [
         "DATABASE_URL",
         "DATABASE_AUTH_TOKEN"

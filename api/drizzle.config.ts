@@ -5,7 +5,7 @@ export default defineConfig({
   out: './src/db/migrations',
   dialect: 'turso',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'file:./marketplace.db',
+    url: process.env.DATABASE_URL || 'file:./api.db',
     authToken: process.env.DATABASE_AUTH_TOKEN,
   },
 });
