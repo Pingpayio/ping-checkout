@@ -70,8 +70,19 @@ export const PaymentSchema = z.object({
   updatedAt: z.string(),
 });
 
+export const QuoteDataSchema = z.object({
+  depositAddress: z.string(),
+  amountIn: z.string(),
+  amountInFormatted: z.string(),
+  amountOut: z.string(),
+  amountOutFormatted: z.string(),
+  deadline: z.string(),
+}).optional();
+
 export const PreparePaymentResponseSchema = z.object({
   payment: PaymentSchema,
+  depositAddress: z.string().optional(),
+  quote: QuoteDataSchema,
 });
 
 export const SubmitPaymentInputSchema = z.object({
@@ -102,6 +113,7 @@ export type CreateCheckoutSessionResponse = z.infer<typeof CreateCheckoutSession
 export type GetCheckoutSessionResponse = z.infer<typeof GetCheckoutSessionResponseSchema>;
 export type PaymentRequest = z.infer<typeof PaymentRequestSchema>;
 export type Payment = z.infer<typeof PaymentSchema>;
+export type QuoteData = z.infer<typeof QuoteDataSchema>;
 export type PreparePaymentResponse = z.infer<typeof PreparePaymentResponseSchema>;
 export type SubmitPaymentInput = z.infer<typeof SubmitPaymentInputSchema>;
 export type SubmitPaymentResponse = z.infer<typeof SubmitPaymentResponseSchema>;

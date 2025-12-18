@@ -1,0 +1,15 @@
+{
+  "name": "pingpay-checkout-merchant-demo",
+  "version": "1.0.0",
+  "description": "Example merchant app demonstrating PingPay Checkout integration",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
+

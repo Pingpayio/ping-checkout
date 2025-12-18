@@ -66,6 +66,44 @@ interface ExecutionResponse {
   [key: string]: unknown;
 }
 
+interface QuoteRequestParams {
+  dry?: boolean;
+  swapType: "EXACT_INPUT" | "EXACT_OUTPUT";
+  slippageTolerance: number; // basis points, e.g., 100 for 1%
+  originAsset: string; // assetId
+  depositType: "ORIGIN_CHAIN" | "INTENTS";
+  destinationAsset: string; // assetId
+  amount: string; // smallest unit
+  refundTo: string; // address
+  refundType: "ORIGIN_CHAIN" | "INTENTS";
+  recipient: string; // address
+  recipientType: "DESTINATION_CHAIN" | "INTENTS";
+  deadline: string; // ISO date-time
+  referral?: string;
+  quoteWaitingTimeMs?: number;
+  appFees?: Array<{ recipient: string; fee: number }>;
+}
+
+interface QuoteResponseData {
+  timestamp: string;
+  signature: string;
+  quoteRequest: QuoteRequestParams;
+  quote: {
+    depositAddress: string;
+    amountIn: string;
+    amountInFormatted: string;
+    amountInUsd?: string;
+    minAmountIn?: string;
+    amountOut: string;
+    amountOutFormatted: string;
+    amountOutUsd?: string;
+    minAmountOut?: string;
+    deadline: string;
+    timeWhenInactive: string;
+    timeEstimate: number;
+  };
+}
+
 interface StatusResponse {
   status: 'SUCCESS' | 'REFUNDED' | 'PENDING' | string;
   txId?: string;
@@ -180,6 +218,96 @@ export class PaymentsService {
     });
   }
 
+  private getIntentsQuote(request: PaymentRequest): Effect.Effect<QuoteResponseData, Error> {
+    return Effect.gen(this, function* (_) {
+      if (!this.apiKey) {
+        return yield* _(Effect.fail(new Error('NEAR_INTENTS_API_KEY not configured')));
+      }
+
+      // For checkout, we're doing a direct transfer (no swap needed)
+      // The payer sends the asset directly to the recipient
+      // But we still need a deposit address for tracking
+      // For now, we'll use INTENTS deposit type to get a deposit address
+      
+      // Parse asset ID to determine origin asset
+      // Format: nep141:usdc.near or usdc.near
+      const assetId = request.asset.assetId.replace(/^nep141:/, '');
+      
+      // Default to NEAR mainnet for now
+      const originAsset = `nep141:${assetId}`;
+      const destinationAsset = request.asset.assetId;
+      
+      // Calculate deadline (5 minutes from now)
+      const deadline = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      
+      const quoteParams: QuoteRequestParams = {
+        dry: true, // Dry run for quote
+        swapType: "EXACT_INPUT",
+        slippageTolerance: 100, // 1%
+        originAsset,
+        depositType: "INTENTS",
+        destinationAsset,
+        amount: request.asset.amount,
+        refundTo: request.payer.address,
+        refundType: "INTENTS",
+        recipient: request.recipient.address,
+        recipientType: "DESTINATION_CHAIN",
+        deadline,
+      };
+
+      const url = `${this.ONECLICK_BASE_URL}/v0/quote`;
+      
+      const result = yield* _(
+        Effect.tryPromise({
+          try: async () => {
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.apiKey}`,
+            };
+            
+            const response = await fetch(url, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(quoteParams),
+            });
+            
+            if (!response.ok) {
+              const data = await response.json().catch(() => ({})) as { message?: string; [key: string]: unknown };
+              
+              if (response.status === 401 || response.status === 403) {
+                throw new ProviderAuthError(data.message || 'Authentication failed');
+              }
+              
+              if (response.status === 429) {
+                throw new ProviderRateLimitError(data.message || 'Rate limit exceeded');
+              }
+              
+              if (response.status >= 400) {
+                const message = data.message || 'Validation error';
+                throw new ProviderValidationError(message);
+              }
+              
+              throw new ProviderError(data.message || 'Failed to get quote');
+            }
+            
+            return await response.json() as QuoteResponseData;
+          },
+          catch: (error) => {
+            if (error instanceof ProviderAuthError || 
+                error instanceof ProviderRateLimitError || 
+                error instanceof ProviderValidationError || 
+                error instanceof ProviderError) {
+              return error;
+            }
+            return new Error(`Failed to get quote: ${error instanceof Error ? error.message : String(error)}`);
+          },
+        })
+      );
+      
+      return result;
+    });
+  }
+
   getIntentsStatus(depositAddress: string): Effect.Effect<StatusResponse, Error> {
     return Effect.gen(this, function* (_) {
       const url = `${this.ONECLICK_BASE_URL}/v0/status`;
@@ -288,11 +416,60 @@ export class PaymentsService {
           };
         }
 
-        return { payment };
+        // Extract deposit address from settlement refs if available
+        let depositAddress: string | undefined;
+        if (existingPayment.settlementRefs) {
+          try {
+            const refs = JSON.parse(existingPayment.settlementRefs) as Record<string, string>;
+            depositAddress = refs.depositAddress;
+          } catch {
+            // Ignore parse errors
+          }
+        }
+
+        return { 
+          payment,
+          depositAddress,
+        };
       }
 
       const paymentId = `pay_${randomBytes(16).toString('hex')}`;
       const now = new Date().toISOString();
+
+      // Get quote from intents API if API key is configured
+      let quoteData: QuoteResponseData | null = null;
+      let depositAddress: string | null = null;
+      let quoteTotalFee: string | null = null;
+      let quoteAssetId: string | null = null;
+      let settlementRefs: Record<string, string> = {};
+
+      if (this.apiKey) {
+        try {
+          quoteData = yield* _(this.getIntentsQuote(request));
+          depositAddress = quoteData.quote.depositAddress;
+          
+          // Calculate fee if applicable
+          if (quoteData.quote.amountIn && quoteData.quote.amountOut) {
+            const amountIn = BigInt(quoteData.quote.amountIn);
+            const amountOut = BigInt(quoteData.quote.amountOut);
+            if (amountIn > amountOut) {
+              quoteTotalFee = (amountIn - amountOut).toString();
+              quoteAssetId = request.asset.assetId;
+            }
+          }
+          
+          // Store quote reference
+          settlementRefs.quoteId = quoteData.signature;
+          settlementRefs.depositAddress = depositAddress;
+        } catch (error) {
+          // Log error but don't fail payment creation
+          console.error('Failed to get quote from intents API:', error);
+        }
+      }
+
+      const settlementRefsJson = Object.keys(settlementRefs).length > 0 
+        ? JSON.stringify(settlementRefs) 
+        : null;
 
       yield* _(
         Effect.tryPromise({
@@ -307,9 +484,9 @@ export class PaymentsService {
               amountValue: request.asset.amount,
               memo: request.memo ?? null,
               idempotencyKey: request.idempotencyKey,
-              quoteTotalFee: null,
-              quoteAssetId: null,
-              settlementRefs: null,
+              quoteTotalFee,
+              quoteAssetId,
+              settlementRefs: settlementRefsJson,
               metadata: null,
               createdAt: now,
               updatedAt: now,
@@ -326,7 +503,29 @@ export class PaymentsService {
         updatedAt: now,
       };
 
-      return { payment };
+      if (quoteTotalFee && quoteAssetId) {
+        payment.feeQuote = {
+          totalFee: {
+            assetId: quoteAssetId,
+            amount: quoteTotalFee,
+          },
+        };
+      }
+
+      // Add deposit address and quote to response via metadata
+      // We'll update the schema to include these fields properly
+      return { 
+        payment,
+        depositAddress: depositAddress || undefined,
+        quote: quoteData ? {
+          depositAddress: quoteData.quote.depositAddress,
+          amountIn: quoteData.quote.amountIn,
+          amountInFormatted: quoteData.quote.amountInFormatted,
+          amountOut: quoteData.quote.amountOut,
+          amountOutFormatted: quoteData.quote.amountOutFormatted,
+          deadline: quoteData.quote.deadline,
+        } : undefined,
+      };
     });
   }
 
