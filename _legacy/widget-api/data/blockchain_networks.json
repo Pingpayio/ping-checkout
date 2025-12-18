@@ -1,0 +1,4 @@
+[
+  { "id": "near", "name": "NEAR", "chainId": "near:mainnet", "nativeSymbol": "NEAR", "explorer": "https://nearblocks.io" },
+  { "id": "base", "name": "Base", "chainId": "eip155:8453", "nativeSymbol": "ETH", "explorer": "https://basescan.org" }
+]

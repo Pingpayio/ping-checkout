@@ -1,0 +1,11 @@
+{
+  "near": [
+    { "id": "near", "symbol": "NEAR", "name": "NEAR", "address": "native", "decimals": 24 },
+    { "id": "usdc.near", "symbol": "USDC", "name": "USD Coin", "address": "usdc.fakes.test", "decimals": 6 },
+    { "id": "wrap.near", "symbol": "wNEAR", "name": "Wrapped NEAR", "address": "wrap.near", "decimals": 24 }
+  ],
+  "base": [
+    { "id": "usdc.base", "symbol": "USDC", "name": "USD Coin", "address": "0x8f...fake", "decimals": 6 },
+    { "id": "eth.base", "symbol": "ETH", "name": "Ether", "address": "native", "decimals": 18 }
+  ]
+}
