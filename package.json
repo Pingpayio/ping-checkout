@@ -4,12 +4,14 @@
   "workspaces": [
     "api",
     "host",
-    "ui"
+    "ui",
+    "examples/*"
   ],
   "scripts": {
     "dev": "turbo dev",
     "dev:ui": "USE_REMOTE_API=true turbo dev --filter=host --filter=ui",
     "dev:api": "USE_REMOTE_UI=true turbo dev --filter=host --filter=api",
+    "dev:example": "turbo dev --filter=pingpay-checkout-merchant-demo",
     "start": "turbo preview --filter=host",
     "build": "turbo build",
     "build:api": "turbo build --filter=api",

@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LayoutRouteImport } from './routes/_layout'
+import { Route as CheckoutIndexRouteImport } from './routes/checkout/index'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
+import { Route as CheckoutProcessingRouteImport } from './routes/checkout/processing'
 import { Route as LayoutLoginRouteImport } from './routes/_layout/login'
 import { Route as LayoutPageRouteImport } from './routes/_layout/_page'
 import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authenticated'
@@ -22,10 +24,20 @@ const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutIndexRoute = CheckoutIndexRouteImport.update({
+  id: '/checkout/',
+  path: '/checkout/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LayoutIndexRoute = LayoutIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LayoutRoute,
+} as any)
+const CheckoutProcessingRoute = CheckoutProcessingRouteImport.update({
+  id: '/checkout/processing',
+  path: '/checkout/processing',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LayoutLoginRoute = LayoutLoginRouteImport.update({
   id: '/login',
@@ -60,14 +72,18 @@ const LayoutAuthenticatedDashboardRoute =
 
 export interface FileRoutesByFullPath {
   '/login': typeof LayoutLoginRoute
+  '/checkout/processing': typeof CheckoutProcessingRoute
   '/': typeof LayoutIndexRoute
+  '/checkout': typeof CheckoutIndexRoute
   '/dashboard': typeof LayoutAuthenticatedDashboardRoute
   '/privacy-policy': typeof LayoutPagePrivacyPolicyRoute
   '/terms-of-service': typeof LayoutPageTermsOfServiceRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LayoutLoginRoute
+  '/checkout/processing': typeof CheckoutProcessingRoute
   '/': typeof LayoutIndexRoute
+  '/checkout': typeof CheckoutIndexRoute
   '/dashboard': typeof LayoutAuthenticatedDashboardRoute
   '/privacy-policy': typeof LayoutPagePrivacyPolicyRoute
   '/terms-of-service': typeof LayoutPageTermsOfServiceRoute
@@ -78,7 +94,9 @@ export interface FileRoutesById {
   '/_layout/_authenticated': typeof LayoutAuthenticatedRouteWithChildren
   '/_layout/_page': typeof LayoutPageRouteWithChildren
   '/_layout/login': typeof LayoutLoginRoute
+  '/checkout/processing': typeof CheckoutProcessingRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/checkout/': typeof CheckoutIndexRoute
   '/_layout/_authenticated/dashboard': typeof LayoutAuthenticatedDashboardRoute
   '/_layout/_page/privacy-policy': typeof LayoutPagePrivacyPolicyRoute
   '/_layout/_page/terms-of-service': typeof LayoutPageTermsOfServiceRoute
@@ -87,19 +105,30 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/login'
+    | '/checkout/processing'
     | '/'
+    | '/checkout'
     | '/dashboard'
     | '/privacy-policy'
     | '/terms-of-service'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/' | '/dashboard' | '/privacy-policy' | '/terms-of-service'
+  to:
+    | '/login'
+    | '/checkout/processing'
+    | '/'
+    | '/checkout'
+    | '/dashboard'
+    | '/privacy-policy'
+    | '/terms-of-service'
   id:
     | '__root__'
     | '/_layout'
     | '/_layout/_authenticated'
     | '/_layout/_page'
     | '/_layout/login'
+    | '/checkout/processing'
     | '/_layout/'
+    | '/checkout/'
     | '/_layout/_authenticated/dashboard'
     | '/_layout/_page/privacy-policy'
     | '/_layout/_page/terms-of-service'
@@ -107,6 +136,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   LayoutRoute: typeof LayoutRouteWithChildren
+  CheckoutProcessingRoute: typeof CheckoutProcessingRoute
+  CheckoutIndexRoute: typeof CheckoutIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -118,12 +149,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout/': {
+      id: '/checkout/'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_layout/': {
       id: '/_layout/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof LayoutIndexRouteImport
       parentRoute: typeof LayoutRoute
+    }
+    '/checkout/processing': {
+      id: '/checkout/processing'
+      path: '/checkout/processing'
+      fullPath: '/checkout/processing'
+      preLoaderRoute: typeof CheckoutProcessingRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_layout/login': {
       id: '/_layout/login'
@@ -214,6 +259,8 @@ const LayoutRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   LayoutRoute: LayoutRouteWithChildren,
+  CheckoutProcessingRoute: CheckoutProcessingRoute,
+  CheckoutIndexRoute: CheckoutIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
