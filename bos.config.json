@@ -4,7 +4,7 @@
     "host": {
       "title": "App",
       "development": "http://localhost:3001",
-      "production": "https://checkout.pingpay.io"
+      "production": "https://everything.dev"
     },
     "ui": {
       "name": "ui",
