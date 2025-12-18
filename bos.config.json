@@ -1,10 +1,10 @@
 {
-  "account": "app.every.near",
+  "account": "demo.everything.near",
   "app": {
     "host": {
       "title": "App",
       "development": "http://localhost:3001",
-      "production": "https://everything.dev"
+      "production": "https://demo.everything.dev"
     },
     "ui": {
       "name": "ui",
