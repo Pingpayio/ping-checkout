@@ -17,9 +17,9 @@ export const runtime = createPluginRuntime({
   secrets: {},
 });
 
-export async function getPluginClient() {
+export async function getPluginClient(context?: { nearAccountId?: string }) {
   const { createClient } = await runtime.usePlugin(TEST_PLUGIN_ID, TEST_CONFIG);
-  return createClient();
+  return createClient(context);
 }
 
 export async function teardown() {

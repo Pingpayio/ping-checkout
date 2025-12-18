@@ -6,6 +6,7 @@ import { contract } from './contract';
 import { Database, DatabaseLive } from './store';
 import { eq } from 'drizzle-orm';
 import { CheckoutService, CheckoutSessionNotFoundError } from './services/checkout';
+import { PaymentsService, PaymentNotFoundError, PaymentAlreadyFinalizedError } from './services/payments';
 import { createDatabase } from './db';
 
 export default createPlugin({
@@ -41,6 +42,7 @@ export default createPlugin({
   createRouter: (context, builder) => {
     const { db } = context;
     const checkoutService = new CheckoutService(db);
+    const paymentsService = new PaymentsService(db);
 
     const requireAuth = builder.middleware(async ({ context, next }) => {
       if (!context.nearAccountId) {
@@ -102,22 +104,64 @@ export default createPlugin({
       },
 
       payments: {
-        prepare: builder.payments.prepare.handler(async ({ input }) => {
-          throw new ORPCError('NOT_IMPLEMENTED', {
-            message: 'Payment preparation not yet implemented',
-          });
+        prepare: builder.payments.prepare.handler(async ({ input, context }) => {
+          const merchantId = context.nearAccountId || 'anonymous';
+          
+          try {
+            const result = await Effect.runPromise(
+              paymentsService.preparePayment(merchantId, input.request)
+            );
+            return result;
+          } catch (error) {
+            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+              message: error instanceof Error ? error.message : 'Failed to prepare payment',
+            });
+          }
         }),
 
-        submit: builder.payments.submit.handler(async ({ input }) => {
-          throw new ORPCError('NOT_IMPLEMENTED', {
-            message: 'Payment submission not yet implemented',
-          });
+        submit: builder.payments.submit.handler(async ({ input, context }) => {
+          const merchantId = context.nearAccountId || 'anonymous';
+          
+          try {
+            const result = await Effect.runPromise(
+              paymentsService.submitPayment(merchantId, input)
+            );
+            return result;
+          } catch (error) {
+            if (error instanceof PaymentNotFoundError) {
+              throw new ORPCError('NOT_FOUND', {
+                message: error.message,
+              });
+            }
+            if (error instanceof PaymentAlreadyFinalizedError) {
+              throw new ORPCError('CONFLICT', {
+                message: error.message,
+              });
+            }
+            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+              message: error instanceof Error ? error.message : 'Failed to submit payment',
+            });
+          }
         }),
 
-        get: builder.payments.get.handler(async ({ input }) => {
-          throw new ORPCError('NOT_IMPLEMENTED', {
-            message: 'Payment retrieval not yet implemented',
-          });
+        get: builder.payments.get.handler(async ({ input, context }) => {
+          const merchantId = context.nearAccountId || 'anonymous';
+          
+          try {
+            const result = await Effect.runPromise(
+              paymentsService.getPayment(merchantId, input)
+            );
+            return result;
+          } catch (error) {
+            if (error instanceof PaymentNotFoundError) {
+              throw new ORPCError('NOT_FOUND', {
+                message: error.message,
+              });
+            }
+            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+              message: error instanceof Error ? error.message : 'Failed to get payment',
+            });
+          }
         }),
       },
     }
