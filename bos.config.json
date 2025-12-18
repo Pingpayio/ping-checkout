@@ -1,12 +1,13 @@
 {
-  "account": "checkout.pingpayio.near",
+  "account": "app.every.near",
   "app": {
     "host": {
-      "title": "PingPay Checkout",
+      "title": "App",
       "development": "http://localhost:3001",
       "production": "https://checkout.pingpay.io"
     },
     "ui": {
+      "name": "ui",
       "development": "http://localhost:3002",
       "production": "https://elliot-braem-1215-ui-ping-checkout-pingpayio-4ce2a4952-ze.zephyrcloud.app",
       "exposes": {
@@ -17,6 +18,7 @@
       }
     },
     "api": {
+      "name": "api",
       "development": "http://localhost:3014",
       "production": "https://elliot-braem-1212-api-near-merch-stor-6a4c96dde-ze.zephyrcloud.app",
       "variables": {},

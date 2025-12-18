@@ -122,63 +122,34 @@ function LoginPage() {
     isDisconnectingWallet;
 
   return (
-    <div className="bg-background min-h-screen w-full flex items-center justify-center py-16 px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold mb-4">Sign In</h1>
-          <p className="text-sm text-muted-foreground">
-            Don't have a NEAR wallet?{" "}
-            <a
-              href="https://wallet.near.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-foreground"
-            >
-              Create one here
-            </a>
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          {!accountId ? (
+    <div className="min-h-[80vh] w-full flex items-center justify-center px-6">
+      <div className="w-full max-w-sm space-y-3">
+        {!accountId ? (
+          <button
+            onClick={handleWalletConnect}
+            disabled={isLoading}
+            className="w-full px-6 py-4 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isConnectingWallet ? "connecting..." : "connect near wallet"}
+          </button>
+        ) : (
+          <>
             <button
-              onClick={handleWalletConnect}
+              onClick={handleNearSignIn}
               disabled={isLoading}
-              className="w-full bg-primary text-primary-foreground border-2 border-primary px-6 py-5 flex items-center justify-center gap-3 hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="w-full px-6 py-4 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="text-sm">
-                {isConnectingWallet
-                  ? "Connecting Wallet..."
-                  : "Connect NEAR Wallet"}
-              </span>
+              {isSigningInWithNear ? "signing in..." : `sign in as ${accountId}`}
             </button>
-          ) : (
-            <div className="space-y-3">
-              <button
-                onClick={handleNearSignIn}
-                disabled={isLoading}
-                className="w-full bg-primary text-primary-foreground border-2 border-primary px-6 py-5 flex items-center justify-center gap-3 hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                <span className="text-sm">
-                  {isSigningInWithNear
-                    ? "Signing in..."
-                    : `Sign in with NEAR (${accountId})`}
-                </span>
-              </button>
-              <button
-                onClick={handleWalletDisconnect}
-                disabled={isLoading}
-                className="w-full bg-card border-2 border-border px-6 py-3 flex items-center justify-center gap-3 hover:bg-accent transition-colors disabled:opacity-50"
-              >
-                <span className="text-sm text-muted-foreground">
-                  {isDisconnectingWallet
-                    ? "Disconnecting..."
-                    : "Disconnect Wallet"}
-                </span>
-              </button>
-            </div>
-          )}
-        </div>
+            <button
+              onClick={handleWalletDisconnect}
+              disabled={isLoading}
+              className="w-full px-6 py-3 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDisconnectingWallet ? "disconnecting..." : "disconnect"}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
-# PingPay Checkout
+# Module Federation Monorepo
 
-A production-ready e-commerce checkout powered by PingPay, demonstrating print-on-demand fulfillment with Module Federation architecture.
+A production-ready Module Federation monorepo demonstrating every-plugin architecture, runtime-loaded configuration, and NEAR Protocol integration.
 
 Built with React, Hono.js, oRPC, Better-Auth, and Module Federation.
 
@@ -65,10 +65,9 @@ See [LLM.txt](./LLM.txt) for complete architecture details.
 - every-plugin architecture for modular APIs
 - Effect-TS for service composition
 
-**Database & Payments:**
+**Database & Auth:**
 - SQLite (libsql) + Drizzle ORM
-- Stripe for payments
-- Printful/Gelato for fulfillment
+- Better-Auth with NEAR Protocol support
 
 ## Configuration
 
@@ -76,22 +75,24 @@ All runtime configuration lives in `bos.config.json`:
 
 ```json
 {
-  "account": "checkout.pingpayio.near",
+  "account": "example.near",
   "app": {
-    "host": { "title": "PingPay Checkout" },
+    "host": {
+      "title": "App Title",
+      "development": "http://localhost:3001",
+      "production": "https://example.com"
+    },
     "ui": {
+      "name": "ui",
       "development": "http://localhost:3002",
       "production": "https://cdn.example.com/ui/remoteEntry.js"
     },
     "api": {
-      "development": "http://localhost:3014/remoteEntry.js",
+      "name": "api",
+      "development": "http://localhost:3014",
       "production": "https://cdn.example.com/api/remoteEntry.js",
-      "variables": {
-      },
-      "secrets": [
-        "DATABASE_URL",
-        "DATABASE_AUTH_TOKEN"
-      ]
+      "variables": {},
+      "secrets": ["DATABASE_URL", "DATABASE_AUTH_TOKEN"]
     }
   }
 }
@@ -121,7 +122,6 @@ bun build:host       # Build host server
 bun db:migrate       # Run migrations
 bun db:push          # Push schema changes
 bun db:studio        # Open Drizzle Studio
-bun db:sync          # Sync products from live API to local database
 
 # Testing
 bun test             # Run all tests

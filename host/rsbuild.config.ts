@@ -98,7 +98,7 @@ export default defineConfig({
     template: './index.html',
     templateParameters: {
       title: bosConfig.app.host.title,
-      description: bosConfig.app.host.description || 'PingPay Checkout',
+      description: bosConfig.app.host.description,
     },
   },
   dev: {
