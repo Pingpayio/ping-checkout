@@ -1,5 +1,5 @@
 import { Effect } from 'every-plugin/effect';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import type { Database } from '../db';
 import { checkoutSessions } from '../db/schema';
 import type {
@@ -10,6 +10,19 @@ import type {
   CheckoutSession,
 } from '../schema';
 import { randomBytes } from 'crypto';
+
+function isExpired(expiresAt: string | undefined): boolean {
+  if (!expiresAt) return false;
+  const t = Date.parse(expiresAt);
+  return Number.isFinite(t) ? t <= Date.now() : false;
+}
+
+function buildCheckoutUrl(sessionId: string): string {
+  const base = (process.env.CHECKOUT_UI_BASE_URL || 'http://localhost:3002').replace(/\/$/, '');
+  const url = new URL(`${base}/checkout`);
+  url.searchParams.set('sessionId', sessionId);
+  return url.toString();
+}
 
 export class CheckoutSessionNotFoundError extends Error {
   readonly _tag = 'CheckoutSessionNotFoundError';
@@ -61,14 +74,14 @@ export class CheckoutService {
         amount: input.amount,
         recipient: input.recipient,
         theme: input.theme,
-        successUrl: input.successUrl,
-        cancelUrl: input.cancelUrl,
+        successUrl: input.successUrl ?? undefined,
+        cancelUrl: input.cancelUrl ?? undefined,
         createdAt: now,
         expiresAt,
         metadata: input.metadata,
       };
 
-      const sessionUrl = `https://pay.pingpay.io/checkout/${sessionId}`;
+      const sessionUrl = buildCheckoutUrl(sessionId);
 
       return { session, sessionUrl };
     });
@@ -79,30 +92,49 @@ export class CheckoutService {
     input: GetCheckoutSessionInput
   ): Effect.Effect<GetCheckoutSessionResponse, CheckoutSessionNotFoundError | Error> {
     return Effect.gen(this, function* (_) {
-      const rows = yield* _(
+      const row = yield* _(
         Effect.tryPromise({
           try: () =>
             this.db
               .select()
               .from(checkoutSessions)
-              .where(eq(checkoutSessions.id, input.sessionId))
-              .limit(1),
-          catch: (error) => new Error(`Failed to fetch session: ${error}`),
+              .where(
+                and(
+                  eq(checkoutSessions.id, input.sessionId),
+                  eq(checkoutSessions.merchantId, merchantId)
+                )
+              )
+              .get(),
+          catch: (error) => new Error(`Failed to get session: ${error}`),
         })
       );
 
-      if (rows.length === 0) {
+      if (!row) {
         return yield* _(Effect.fail(new CheckoutSessionNotFoundError(input.sessionId)));
       }
-
-      const row = rows[0]!;
 
       const theme = row.themeJson ? JSON.parse(row.themeJson) : undefined;
       const metadata = row.metadataJson ? JSON.parse(row.metadataJson) : undefined;
 
+      let status = row.status as CheckoutSession['status'];
+
+      if (status !== 'EXPIRED' && isExpired(row.expiresAt ?? undefined)) {
+        status = 'EXPIRED';
+        yield* _(
+          Effect.tryPromise({
+            try: () =>
+              this.db
+                .update(checkoutSessions)
+                .set({ status: 'EXPIRED' })
+                .where(eq(checkoutSessions.id, input.sessionId)),
+            catch: (error) => new Error(`Failed to update expired session: ${error}`),
+          })
+        );
+      }
+
       const session: CheckoutSession = {
         sessionId: row.id,
-        status: row.status as CheckoutSession['status'],
+        status,
         paymentId: row.paymentId ?? null,
         amount: {
           assetId: row.amountAssetId,

@@ -1,6 +1,6 @@
 import { NearConnector } from '@hot-labs/near-connect';
 import { Near, fromHotConnect } from 'near-kit';
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 interface WalletContextValue {
   connector: NearConnector | null;
@@ -37,46 +37,45 @@ export function WalletProvider({ children, network = 'mainnet' }: WalletProvider
     const connectorInstance = new NearConnector({ network });
     setConnector(connectorInstance);
 
-    // Listen for sign in
-    connectorInstance.on('wallet:signIn', async (data) => {
+    const handleSignIn = async (data: unknown) => {
       try {
         const nearInstance = new Near({
           network,
           wallet: fromHotConnect(connectorInstance),
         });
         setNear(nearInstance);
-        setAccountId(data.accountId || null);
+
+        // Be defensive about the event payload shape
+        const maybeAccountId =
+          typeof data === 'object' && data !== null && 'accountId' in data
+            ? (data as any).accountId
+            : undefined;
+
+        setAccountId(typeof maybeAccountId === 'string' ? maybeAccountId : null);
         setIsConnecting(false);
       } catch (error) {
         console.error('Failed to initialize Near instance:', error);
         setIsConnecting(false);
       }
-    });
+    };
 
-    // Listen for sign out
-    connectorInstance.on('wallet:signOut', () => {
+    const handleSignOut = () => {
       setNear(null);
       setAccountId(null);
-    });
+    };
 
-    // Check if already connected
-    connectorInstance.getAccounts().then((accounts) => {
-      if (accounts.length > 0) {
-        const account = accounts[0];
-        if (account) {
-          const nearInstance = new Near({
-            network,
-            wallet: fromHotConnect(connectorInstance),
-          });
-          setNear(nearInstance);
-          setAccountId(account.accountId);
-        }
-      }
-    });
+    // Listen for sign in/out
+    connectorInstance.on('wallet:signIn', handleSignIn as any);
+    connectorInstance.on('wallet:signOut', handleSignOut as any);
 
     return () => {
-      connectorInstance.off('wallet:signIn');
-      connectorInstance.off('wallet:signOut');
+      // Some event emitters require the handler arg for `off`
+      try {
+        (connectorInstance as any).off?.('wallet:signIn', handleSignIn);
+        (connectorInstance as any).off?.('wallet:signOut', handleSignOut);
+      } catch {
+        // ignore
+      }
     };
   }, [network]);
 
@@ -118,4 +117,5 @@ export function WalletProvider({ children, network = 'mainnet' }: WalletProvider
     </WalletContext.Provider>
   );
 }
+
 
