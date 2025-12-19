@@ -264,11 +264,9 @@ export class PaymentsService {
           request: {
             payer: {
               address: existingPayment.payerAddress,
-              chainId: existingPayment.payerChainId,
             },
             recipient: {
               address: existingPayment.recipientAddress,
-              chainId: existingPayment.recipientChainId,
             },
             asset: {
               assetId: existingPayment.assetId,
@@ -304,9 +302,7 @@ export class PaymentsService {
               merchantId,
               status: 'PENDING',
               payerAddress: request.payer.address,
-              payerChainId: request.payer.chainId,
               recipientAddress: request.recipient.address,
-              recipientChainId: request.recipient.chainId,
               assetId: request.asset.assetId,
               amountValue: request.asset.amount,
               memo: request.memo ?? null,
@@ -368,11 +364,9 @@ export class PaymentsService {
         request: {
           payer: {
             address: row.payerAddress,
-            chainId: row.payerChainId,
           },
           recipient: {
             address: row.recipientAddress,
-            chainId: row.recipientChainId,
           },
           asset: {
             assetId: row.assetId,
@@ -485,11 +479,9 @@ export class PaymentsService {
         request: {
           payer: {
             address: row.payerAddress,
-            chainId: row.payerChainId,
           },
           recipient: {
             address: row.recipientAddress,
-            chainId: row.recipientChainId,
           },
           asset: {
             assetId: row.assetId,

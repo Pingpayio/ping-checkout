@@ -48,11 +48,9 @@ describe('Payments Integration Tests', () => {
         request: {
           payer: {
             address: 'payer.near',
-            chainId: 'near:mainnet',
           },
           recipient: {
             address: 'merchant.near',
-            chainId: 'near:mainnet',
           },
           asset: {
             assetId: 'usdc.near',
@@ -71,11 +69,9 @@ describe('Payments Integration Tests', () => {
       });
       expect(result.payment.request.payer).toEqual({
         address: 'payer.near',
-        chainId: 'near:mainnet',
       });
       expect(result.payment.request.recipient).toEqual({
         address: 'merchant.near',
-        chainId: 'near:mainnet',
       });
       expect(result.payment.request.idempotencyKey).toBe('idem-123');
       expect(result.payment.createdAt).toBeDefined();
@@ -91,11 +87,9 @@ describe('Payments Integration Tests', () => {
       const request = {
         payer: {
           address: 'payer.near',
-          chainId: 'near:mainnet',
         },
         recipient: {
           address: 'merchant.near',
-          chainId: 'near:mainnet',
         },
         asset: {
           assetId: 'usdc.near',
@@ -124,11 +118,9 @@ describe('Payments Integration Tests', () => {
         request: {
           payer: {
             address: 'payer.near',
-            chainId: 'near:mainnet',
           },
           recipient: {
             address: 'merchant.near',
-            chainId: 'near:mainnet',
           },
           asset: {
             assetId: 'usdc.near',
@@ -154,11 +146,9 @@ describe('Payments Integration Tests', () => {
         request: {
           payer: {
             address: 'payer.near',
-            chainId: 'near:mainnet',
           },
           recipient: {
             address: 'merchant.near',
-            chainId: 'near:mainnet',
           },
           asset: {
             assetId: 'usdc.near',
@@ -197,11 +187,9 @@ describe('Payments Integration Tests', () => {
         request: {
           payer: {
             address: 'payer.near',
-            chainId: 'near:mainnet',
           },
           recipient: {
             address: 'merchant.near',
-            chainId: 'near:mainnet',
           },
           asset: {
             assetId: 'usdc.near',
@@ -241,11 +229,9 @@ describe('Payments Integration Tests', () => {
         request: {
           payer: {
             address: 'payer.near',
-            chainId: 'near:mainnet',
           },
           recipient: {
             address: 'merchant.near',
-            chainId: 'near:mainnet',
           },
           asset: {
             assetId: 'usdc.near',
@@ -278,11 +264,9 @@ describe('Payments Integration Tests', () => {
         request: {
           payer: {
             address: 'payer.near',
-            chainId: 'near:mainnet',
           },
           recipient: {
             address: 'merchant.near',
-            chainId: 'near:mainnet',
           },
           asset: {
             assetId: 'usdc.near',
@@ -324,11 +308,9 @@ describe('Payments Integration Tests', () => {
         request: {
           payer: {
             address: 'payer.near',
-            chainId: 'near:mainnet',
           },
           recipient: {
             address: 'merchant.near',
-            chainId: 'near:mainnet',
           },
           asset: {
             assetId: 'usdc.near',
@@ -362,11 +344,9 @@ describe('Payments Integration Tests', () => {
         request: {
           payer: {
             address: 'payer.near',
-            chainId: 'near:mainnet',
           },
           recipient: {
             address: 'merchant.near',
-            chainId: 'near:mainnet',
           },
           asset: {
             assetId: 'usdc.near',
@@ -400,11 +380,9 @@ describe('Payments Integration Tests', () => {
         request: {
           payer: {
             address: 'payer.near',
-            chainId: 'near:mainnet',
           },
           recipient: {
             address: 'merchant.near',
-            chainId: 'near:mainnet',
           },
           asset: {
             assetId: 'usdc.near',
@@ -442,11 +420,9 @@ describe('Payments Integration Tests', () => {
         request: {
           payer: {
             address: 'payer.near',
-            chainId: 'near:mainnet',
           },
           recipient: {
             address: 'merchant.near',
-            chainId: 'near:mainnet',
           },
           asset: {
             assetId: 'usdc.near',

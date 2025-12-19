@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "3625faeb-8ff5-4297-a34e-a58ef2309ca1",
+  "id": "c4a34e1a-8f03-46ae-912b-e391d2f503b5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "checkout_sessions": {
@@ -42,22 +42,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "payer_chain_id": {
-          "name": "payer_chain_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "recipient_address": {
           "name": "recipient_address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "recipient_chain_id": {
-          "name": "recipient_chain_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -361,22 +347,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "payer_chain_id": {
-          "name": "payer_chain_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "recipient_address": {
           "name": "recipient_address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "recipient_chain_id": {
-          "name": "recipient_chain_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -523,13 +495,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "recipient_chain_id": {
-          "name": "recipient_chain_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "theme_json": {
           "name": "theme_json",
           "type": "text",
@@ -650,13 +615,6 @@
         },
         "amount": {
           "name": "amount",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "chain_id": {
-          "name": "chain_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,

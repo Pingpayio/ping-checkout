@@ -1,8 +1,12 @@
-# Module Federation Monorepo
+<div align="center">
 
-A production-ready Module Federation monorepo demonstrating every-plugin architecture, runtime-loaded configuration, and NEAR Protocol integration.
+![Banner](https://pingpay.gitbook.io/docs/~gitbook/image?url=https%3A%2F%2F2412975227-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252F4y2jIy2xuLBz44dN9ue8%252Fuploads%252FdtjDAgTURmjEfNBefx2s%252FThe%2520Payment%2520Layer%2520for%2520the%2520Future%2520of%2520Commerce%2520%282%29.png%3Falt%3Dmedia%26token%3D1b23447b-795e-41ea-a11b-44dda7e36a5a&width=768&dpr=4&quality=100&sign=99531ead&sv=2)
 
-Built with React, Hono.js, oRPC, Better-Auth, and Module Federation.
+[website](https://pingpay.io) | [docs](https://docs.pingpay.io)
+
+</div>
+
+
 
 ## Quick Start
 
@@ -22,112 +26,6 @@ Visit http://localhost:3001 to see the application.
 - **[UI README](./ui/README.md)** - Frontend documentation
 - **[Host README](./host/README.md)** - Server host documentation
 
-## Architecture
-
-**Module Federation Monorepo** with runtime-loaded configuration:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                  host (Server)                          │
-│  Hono.js + oRPC + bos.config.json loader                │
-│  ┌──────────────────┐      ┌──────────────────┐         │
-│  │ Module Federation│      │ every-plugin     │         │
-│  │ Runtime          │      │ Runtime          │         │
-│  └────────┬─────────┘      └────────┬─────────┘         │
-│           ↓                         ↓                   │
-│  Loads UI Remote           Loads API Plugins            │
-└───────────┬─────────────────────────┬───────────────────┘
-            ↓                         ↓
-┌───────────────────────┐ ┌───────────────────────┐
-│    ui/ (Remote)       │ │   api/ (Plugin)       │
-│  React + TanStack     │ │  oRPC + Effect        │
-│  remoteEntry.js       │ │  remoteEntry.js       │
-└───────────────────────┘ └───────────────────────┘
-```
-
-**Key Features:**
-- ✅ **Runtime Configuration** - All URLs loaded from `bos.config.json` (no rebuild needed!)
-- ✅ **Independent Deployment** - UI, API, and Host deploy separately
-- ✅ **Type Safety** - End-to-end with oRPC contracts
-- ✅ **CDN-Ready** - Module Federation with automatic CDN deployment
-
-See [LLM.txt](./LLM.txt) for complete architecture details.
-
-## Tech Stack
-
-**Frontend:**
-- React 19 + TanStack Router (file-based) + TanStack Query
-- Tailwind CSS v4 + shadcn/ui components
-- Module Federation for microfrontend architecture
-
-**Backend:**
-- Hono.js server + oRPC (type-safe RPC + OpenAPI)
-- every-plugin architecture for modular APIs
-- Effect-TS for service composition
-
-**Database & Auth:**
-- SQLite (libsql) + Drizzle ORM
-- Better-Auth with NEAR Protocol support
-
-## Configuration
-
-All runtime configuration lives in `bos.config.json`:
-
-```json
-{
-  "account": "example.near",
-  "app": {
-    "host": {
-      "title": "App Title",
-      "development": "http://localhost:3001",
-      "production": "https://example.com"
-    },
-    "ui": {
-      "name": "ui",
-      "development": "http://localhost:3002",
-      "production": "https://cdn.example.com/ui/remoteEntry.js"
-    },
-    "api": {
-      "name": "api",
-      "development": "http://localhost:3014",
-      "production": "https://cdn.example.com/api/remoteEntry.js",
-      "variables": {},
-      "secrets": ["DATABASE_URL", "DATABASE_AUTH_TOKEN"]
-    }
-  }
-}
-```
-
-**Benefits:**
-- Switch environments via `NODE_ENV` (no rebuild)
-- Update CDN URLs without code changes
-- Template injection for secrets
-
-## Available Scripts
-
-```bash
-# Development
-bun dev              # All services (API: 3014, UI: 3002, Host: 3001)
-bun dev:api          # API plugin only
-bun dev:ui           # UI remote only
-bun dev:host         # Host server only
-
-# Production
-bun build            # Build all packages
-bun build:api        # Build API plugin → uploads to CDN
-bun build:ui         # Build UI remote → uploads to CDN
-bun build:host       # Build host server
-
-# Database
-bun db:migrate       # Run migrations
-bun db:push          # Push schema changes
-bun db:studio        # Open Drizzle Studio
-
-# Testing
-bun test             # Run all tests
-bun typecheck        # Type checking
-```
-
 ## Development Workflow
 
 1. **Make changes** to any workspace (ui/, api/, host/)
@@ -138,14 +36,3 @@ bun typecheck        # Type checking
    - Host automatically loads new versions!
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed development workflow.
-
-## Related Projects
-
-- **[every-plugin](https://github.com/near-everything/every-plugin)** - Plugin framework for modular APIs
-- **[near-kit](https://kit.near.tools)** - Unified NEAR Protocol SDK
-- **[better-near-auth](https://github.com/elliotBraem/better-near-auth)** - NEAR authentication for Better-Auth
-
-## License
-
-MIT
->>>>>>> 4289826 (init)

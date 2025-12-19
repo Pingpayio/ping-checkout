@@ -27,7 +27,7 @@ describe('Checkout Sessions', () => {
 
   const validRequest = {
     amount: { assetId: 'nep141:usdc.near', amount: '1000000' },
-    recipient: { address: 'merchant.near', chainId: 'near' },
+    recipient: { address: 'merchant.near' },
     theme: { brandColor: '#FF0000' },
     successUrl: 'https://example.com/success',
     cancelUrl: 'https://example.com/cancel',
@@ -62,7 +62,7 @@ describe('Checkout Sessions', () => {
       const client = await getPluginClient();
       const minimalRequest = {
         amount: { assetId: 'nep141:usdc.near', amount: '1000000' },
-        recipient: { address: 'merchant.near', chainId: 'near' },
+        recipient: { address: 'merchant.near' },
       };
 
       const result = await client.checkout.createSession(minimalRequest);
@@ -78,7 +78,7 @@ describe('Checkout Sessions', () => {
       const client = await getPluginClient();
       const invalidRequest = {
         amount: { assetId: 'nep141:usdc.near', amount: 'invalid' },
-        recipient: { address: 'merchant.near', chainId: 'near' },
+        recipient: { address: 'merchant.near' },
       };
 
       await expect(
