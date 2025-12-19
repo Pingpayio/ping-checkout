@@ -10,9 +10,9 @@
 
 Use the following forms to get started or request support:
 
-* [Pingpay Partner Interest Form](https://pingpay.notion.site/2c67fbe37dcb816091aec9fdc3af6919?pvs=105)
-* [Request New Chain / Asset Support Form](https://pingpay.notion.site/2b67fbe37dcb8111895dd72e8ade634d)
-* [Additional Onramp Provider Onboarding Form](https://pingpay.notion.site/2b67fbe37dcb81ed93c5f1474b141768)
+* [**Pingpay Partner Interest Form**](https://pingpay.notion.site/2c67fbe37dcb816091aec9fdc3af6919?pvs=105)
+* [**Request New Chain / Asset Support Form**](https://pingpay.notion.site/2b67fbe37dcb8111895dd72e8ade634d)
+* [**Additional Onramp Provider Onboarding Form**](https://pingpay.notion.site/2b67fbe37dcb81ed93c5f1474b141768)
 
 ## Quick Start
 
