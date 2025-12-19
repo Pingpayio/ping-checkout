@@ -111,7 +111,11 @@ export default createPlugin({
           
           try {
             const result = await Effect.runPromise(
-              paymentsService.preparePayment(merchantId, input.request)
+              paymentsService.preparePaymentFromSession(
+                merchantId,
+                input.input,
+                checkoutService
+              )
             );
             return result;
           } catch (error) {

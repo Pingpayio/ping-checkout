@@ -14,12 +14,11 @@ import { randomBytes } from 'crypto';
  * - Lost on restart
  * - Not shared across instances
  */
-type StoredSession = {
-  merchantId: string;
-  session: CheckoutSession;
-};
+const CHECKOUT_INSTANCE_ID = `checkout-${randomBytes(4).toString('hex')}`;
+console.log(`[checkout] in-memory store enabled (instance=${CHECKOUT_INSTANCE_ID})`);
 
-const inMemorySessions = new Map<string, StoredSession>();
+// In-memory sessions keyed by sessionId (merchant-agnostic in dev mode)
+const inMemorySessions = new Map<string, CheckoutSession>();
 
 function isExpired(expiresAt: string | undefined): boolean {
   if (!expiresAt) return false;
@@ -28,7 +27,8 @@ function isExpired(expiresAt: string | undefined): boolean {
 }
 
 function buildCheckoutUrl(sessionId: string): string {
-  const base = (process.env.CHECKOUT_UI_BASE_URL || 'http://localhost:3002').replace(/\/$/, '');
+  // Default to the host app port in this repo (host runs on 3001).
+  const base = (process.env.CHECKOUT_UI_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
   const url = new URL(`${base}/checkout`);
   url.searchParams.set('sessionId', sessionId);
   return url.toString();
@@ -50,6 +50,9 @@ export class CheckoutService {
     input: CreateCheckoutSessionInput
   ): Effect.Effect<CreateCheckoutSessionResponse, Error> {
     return Effect.gen(this, function* (_) {
+      console.log(
+        `[checkout] createSession called (instance=${CHECKOUT_INSTANCE_ID}, merchantId=${merchantId})`
+      );
       const sessionId = `cs_${randomBytes(16).toString('hex')}`;
       const now = new Date().toISOString();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -70,7 +73,10 @@ export class CheckoutService {
       };
 
       // Store locally instead of DB
-      inMemorySessions.set(sessionId, { merchantId, session });
+      inMemorySessions.set(sessionId, session);
+      console.log(
+        `[checkout] stored session ${sessionId} (instance=${CHECKOUT_INSTANCE_ID}, count=${inMemorySessions.size})`
+      );
 
       // Point to the local checkout UI in this repo by default.
       // Override via CHECKOUT_UI_BASE_URL for other environments.
@@ -85,19 +91,33 @@ export class CheckoutService {
     input: GetCheckoutSessionInput
   ): Effect.Effect<GetCheckoutSessionResponse, CheckoutSessionNotFoundError | Error> {
     return Effect.gen(this, function* (_) {
+      console.log(
+        `[checkout] getSession called (instance=${CHECKOUT_INSTANCE_ID}, merchantId=${merchantId}, sessionId=${input.sessionId}, count=${inMemorySessions.size})`
+      );
+
       const stored = inMemorySessions.get(input.sessionId);
-      if (!stored || stored.merchantId !== merchantId) {
+      // TEMPORARY (in-memory mode): do not scope reads by merchant.
+      if (!stored) {
+        console.log(
+          `[checkout] session not found ${input.sessionId} (instance=${CHECKOUT_INSTANCE_ID}, count=${inMemorySessions.size})`
+        );
         return yield* _(Effect.fail(new CheckoutSessionNotFoundError(input.sessionId)));
       }
 
-      if (isExpired(stored.session.expiresAt)) {
+      if (isExpired(stored.expiresAt)) {
         // mark expired + evict
-        const expired: CheckoutSession = { ...stored.session, status: 'EXPIRED' };
+        const expired: CheckoutSession = { ...stored, status: 'EXPIRED' };
         inMemorySessions.delete(input.sessionId);
+        console.log(
+          `[checkout] session expired ${input.sessionId} (instance=${CHECKOUT_INSTANCE_ID}, count=${inMemorySessions.size})`
+        );
         return { session: expired };
       }
 
-      return { session: stored.session };
+      console.log(
+        `[checkout] session hit ${input.sessionId} (instance=${CHECKOUT_INSTANCE_ID}, count=${inMemorySessions.size})`
+      );
+      return { session: stored };
     });
   }
 }

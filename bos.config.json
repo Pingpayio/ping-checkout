@@ -3,7 +3,7 @@
   "app": {
     "host": {
       "title": "App",
-      "development": "http://localhost:3001",
+      "development": "http://localhost:3002",
       "production": "https://checkout.pingpay.io"
     },
     "ui": {
@@ -24,7 +24,8 @@
       "variables": {},
       "secrets": [
         "DATABASE_URL",
-        "DATABASE_AUTH_TOKEN"
+        "DATABASE_AUTH_TOKEN",
+        "NEAR_INTENTS_API_KEY"
       ]
     }
   }
