@@ -1,15 +1,14 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { usePaymentStatus } from '@/hooks/use-payment-status';
 import { useGetCheckoutSession } from '@/integrations/api/checkout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingSpinner } from '@/components/loading';
 import { useEffect } from 'react';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
 export const Route = createFileRoute('/checkout/processing')({
   validateSearch: (search: Record<string, unknown>) => {
     return {
-      paymentId: (search.paymentId as string) || undefined,
+      depositAddress: (search.depositAddress as string) || undefined,
       sessionId: (search.sessionId as string) || undefined,
     };
   },
@@ -17,9 +16,8 @@ export const Route = createFileRoute('/checkout/processing')({
 });
 
 function ProcessingRoute() {
-  const { paymentId, sessionId } = Route.useSearch();
-  const navigate = useNavigate();
-  const { status, isLoading } = usePaymentStatus(paymentId, !!paymentId);
+  const { depositAddress, sessionId } = Route.useSearch();
+  const { status, isLoading } = usePaymentStatus(depositAddress, !!depositAddress);
   const { data: sessionData } = useGetCheckoutSession(sessionId, !!sessionId);
 
   useEffect(() => {
@@ -28,7 +26,7 @@ function ProcessingRoute() {
       setTimeout(() => {
         window.location.href = sessionData.session.successUrl!;
       }, 2000);
-    } else if (status === 'FAILED' && sessionData?.session.cancelUrl) {
+    } else if ((status === 'FAILED' || status === 'REFUNDED') && sessionData?.session.cancelUrl) {
       // Redirect to cancel URL after a short delay
       setTimeout(() => {
         window.location.href = sessionData.session.cancelUrl!;
@@ -59,10 +57,12 @@ function ProcessingRoute() {
           <CardDescription>Your payment is being processed</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {status === 'PENDING' && (
+          {(status === 'PENDING' || status === 'PROCESSING') && (
             <div className="flex flex-col items-center gap-4 py-8">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-lg font-medium">Processing payment...</p>
+              <p className="text-lg font-medium">
+                {status === 'PROCESSING' ? 'Processing payment...' : 'Waiting for deposit...'}
+              </p>
               <p className="text-sm text-muted-foreground">
                 This may take a few moments. Please wait.
               </p>
@@ -73,16 +73,28 @@ function ProcessingRoute() {
             <div className="flex flex-col items-center gap-4 py-8">
               <CheckCircle2 className="h-12 w-12 text-green-500" />
               <p className="text-lg font-medium text-green-500">Payment Successful!</p>
+              {depositAddress && (
+                <a
+                  href={`https://explorer.near-intents.org/transactions/${depositAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline font-mono"
+                >
+                  View on Explorer →
+                </a>
+              )}
               <p className="text-sm text-muted-foreground">
                 Redirecting you back...
               </p>
             </div>
           )}
 
-          {status === 'FAILED' && (
+          {(status === 'FAILED' || status === 'REFUNDED') && (
             <div className="flex flex-col items-center gap-4 py-8">
               <XCircle className="h-12 w-12 text-red-500" />
-              <p className="text-lg font-medium text-red-500">Payment Failed</p>
+              <p className="text-lg font-medium text-red-500">
+                {status === 'REFUNDED' ? 'Payment Refunded' : 'Payment Failed'}
+              </p>
               <p className="text-sm text-muted-foreground">
                 Redirecting you back...
               </p>

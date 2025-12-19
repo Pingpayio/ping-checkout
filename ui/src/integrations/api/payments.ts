@@ -19,6 +19,8 @@ export type PreparePaymentInput = {
 export type PreparePaymentOutput = Awaited<ReturnType<typeof apiClient.payments.prepare>>;
 export type GetPaymentInput = { paymentId: string };
 export type GetPaymentOutput = Awaited<ReturnType<typeof apiClient.payments.get>>;
+export type GetPaymentStatusInput = { depositAddress: string };
+export type GetPaymentStatusOutput = Awaited<ReturnType<typeof apiClient.payments.getStatus>>;
 export type SubmitPaymentInput = Awaited<Parameters<typeof apiClient.payments.submit>[0]>;
 export type SubmitPaymentOutput = Awaited<ReturnType<typeof apiClient.payments.submit>>;
 
@@ -38,9 +40,29 @@ export function useGetPayment(paymentId: string | undefined, enabled = true) {
       return await apiClient.payments.get({ paymentId });
     },
     enabled: enabled && !!paymentId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Poll every 5 seconds if payment is still pending
-      if (data?.payment.status === 'PENDING') {
+      const data = query.state.data;
+      if (data?.payment?.status === 'PENDING') {
+        return 5000;
+      }
+      return false;
+    },
+  });
+}
+
+export function useGetPaymentStatus(depositAddress: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['payments', 'status', depositAddress],
+    queryFn: async (): Promise<GetPaymentStatusOutput> => {
+      if (!depositAddress) throw new Error('Deposit address is required');
+      return await apiClient.payments.getStatus({ depositAddress });
+    },
+    enabled: enabled && !!depositAddress,
+    refetchInterval: (query) => {
+      // Poll every 5 seconds if payment is still pending or processing
+      const data = query.state.data;
+      if (data?.status === 'PENDING' || data?.status === 'PROCESSING') {
         return 5000;
       }
       return false;

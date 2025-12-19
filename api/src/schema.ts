@@ -91,6 +91,10 @@ export const QuoteDataSchema = z.object({
   amountOut: z.string(),
   amountOutFormatted: z.string(),
   deadline: z.string(),
+  quoteRequest: z.object({
+    originAsset: z.string(),
+    destinationAsset: z.string(),
+  }).optional(),
 }).optional();
 
 export const PreparePaymentResponseSchema = z.object({
@@ -117,6 +121,17 @@ export const GetPaymentResponseSchema = z.object({
   payment: PaymentSchema,
 });
 
+export const GetPaymentStatusInputSchema = z.object({
+  depositAddress: z.string(),
+});
+
+export const GetPaymentStatusResponseSchema = z.object({
+  status: z.enum(['SUCCESS', 'REFUNDED', 'FAILED', 'PENDING', 'PROCESSING']),
+  txId: z.string().optional(),
+  reason: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
 export type Party = z.infer<typeof PartySchema>;
 export type AssetAmount = z.infer<typeof AssetAmountSchema>;
 export type Theme = z.infer<typeof ThemeSchema>;
@@ -134,3 +149,5 @@ export type SubmitPaymentInput = z.infer<typeof SubmitPaymentInputSchema>;
 export type SubmitPaymentResponse = z.infer<typeof SubmitPaymentResponseSchema>;
 export type GetPaymentInput = z.infer<typeof GetPaymentInputSchema>;
 export type GetPaymentResponse = z.infer<typeof GetPaymentResponseSchema>;
+export type GetPaymentStatusInput = z.infer<typeof GetPaymentStatusInputSchema>;
+export type GetPaymentStatusResponse = z.infer<typeof GetPaymentStatusResponseSchema>;

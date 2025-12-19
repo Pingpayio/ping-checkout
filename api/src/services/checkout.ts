@@ -50,9 +50,7 @@ export class CheckoutService {
     input: CreateCheckoutSessionInput
   ): Effect.Effect<CreateCheckoutSessionResponse, Error> {
     return Effect.gen(this, function* (_) {
-      console.log(
-        `[checkout] createSession called (instance=${CHECKOUT_INSTANCE_ID}, merchantId=${merchantId})`
-      );
+      // TODO: use db to create session
       const sessionId = `cs_${randomBytes(16).toString('hex')}`;
       const now = new Date().toISOString();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -74,9 +72,6 @@ export class CheckoutService {
 
       // Store locally instead of DB
       inMemorySessions.set(sessionId, session);
-      console.log(
-        `[checkout] stored session ${sessionId} (instance=${CHECKOUT_INSTANCE_ID}, count=${inMemorySessions.size})`
-      );
 
       // Point to the local checkout UI in this repo by default.
       // Override via CHECKOUT_UI_BASE_URL for other environments.
@@ -91,9 +86,6 @@ export class CheckoutService {
     input: GetCheckoutSessionInput
   ): Effect.Effect<GetCheckoutSessionResponse, CheckoutSessionNotFoundError | Error> {
     return Effect.gen(this, function* (_) {
-      console.log(
-        `[checkout] getSession called (instance=${CHECKOUT_INSTANCE_ID}, merchantId=${merchantId}, sessionId=${input.sessionId}, count=${inMemorySessions.size})`
-      );
 
       const stored = inMemorySessions.get(input.sessionId);
       // TEMPORARY (in-memory mode): do not scope reads by merchant.
@@ -113,10 +105,6 @@ export class CheckoutService {
         );
         return { session: expired };
       }
-
-      console.log(
-        `[checkout] session hit ${input.sessionId} (instance=${CHECKOUT_INSTANCE_ID}, count=${inMemorySessions.size})`
-      );
       return { session: stored };
     });
   }

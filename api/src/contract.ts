@@ -12,6 +12,8 @@ import {
   SubmitPaymentResponseSchema,
   GetPaymentInputSchema,
   GetPaymentResponseSchema,
+  GetPaymentStatusInputSchema,
+  GetPaymentStatusResponseSchema,
 } from './schema';
 
 export const contract = oc.router({
@@ -49,6 +51,11 @@ export const contract = oc.router({
       .route({ method: 'GET', path: '/payments/{paymentId}' })
       .input(GetPaymentInputSchema)
       .output(GetPaymentResponseSchema),
+
+    getStatus: oc
+      .route({ method: 'GET', path: '/payments/status' })
+      .input(GetPaymentStatusInputSchema)
+      .output(GetPaymentStatusResponseSchema),
   }),
 });
 
