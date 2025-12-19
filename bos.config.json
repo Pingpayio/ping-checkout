@@ -1,10 +1,10 @@
 {
-  "account": "checkout.pingpayio.near",
+  "account": "pay.pingpayio.near",
   "app": {
     "host": {
       "title": "App",
       "development": "http://localhost:3001",
-      "production": "https://checkout.pingpay.io"
+      "production": "https://pay.pingpay.io"
     },
     "ui": {
       "name": "ui",

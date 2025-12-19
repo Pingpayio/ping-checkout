@@ -1,18 +1,11 @@
 import { z } from 'every-plugin/zod';
 
 export const PartySchema = z.object({
-  address: z.string().min(1).regex(
-    /^([a-zA-Z0-9._-]+|0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44}|[a-zA-Z0-9]{26,35})$/,
-    'Address must be a valid wallet address (NEAR, EVM, Solana, or Bitcoin)'
-  ),
-  chainId: z.string().min(1),
+  address: z.string().min(1),
 });
 
 export const AssetAmountSchema = z.object({
-  assetId: z.string().min(1).regex(
-    /^(nep141:[a-zA-Z0-9._-]+|eip155:\d+:[a-fA-F0-9x]+|solana:[a-zA-Z0-9]+|[a-zA-Z0-9._-]+)$/,
-    'Asset ID must be a valid format (e.g., nep141:wrap.near, eip155:1:0x...)'
-  ),
+  assetId: z.string().min(1),
   amount: z.string().regex(/^\d+$/, 'Amount must be a string integer in smallest units'),
 });
 

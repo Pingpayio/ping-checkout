@@ -42,7 +42,6 @@ export class CheckoutService {
               amountAssetId: input.amount.assetId,
               amountValue: input.amount.amount,
               recipientAddress: input.recipient.address,
-              recipientChainId: input.recipient.chainId,
               themeJson,
               successUrl: input.successUrl,
               cancelUrl: input.cancelUrl,
@@ -111,7 +110,6 @@ export class CheckoutService {
         },
         recipient: {
           address: row.recipientAddress,
-          chainId: row.recipientChainId,
         },
         theme,
         successUrl: row.successUrl ?? undefined,
