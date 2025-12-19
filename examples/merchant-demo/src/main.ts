@@ -33,7 +33,10 @@ async function createCheckoutSession(
   apiUrl: string,
   input: CreateCheckoutSessionInput
 ): Promise<CreateCheckoutSessionResponse> {
-  const response = await fetch(`${apiUrl}/checkout/sessions`, {
+  // This demo uses the OpenAPI/REST handler mounted under `/api`.
+  // (The checkout UI uses oRPC under `/api/rpc`.)
+  const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+  const response = await fetch(`${baseUrl}/checkout/sessions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -64,75 +67,41 @@ function showLoading(button: HTMLButtonElement) {
 
 function hideLoading(button: HTMLButtonElement) {
   button.disabled = false;
-  button.innerHTML = 'Create Checkout Session';
+  button.innerHTML = 'Proceed to Checkout';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('checkoutForm') as HTMLFormElement;
-  const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+  const proceedBtn = document.getElementById('proceedBtn') as HTMLButtonElement;
+  const apiUrl = 'http://localhost:3001/api';
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const apiUrl = (document.getElementById('apiUrl') as HTMLInputElement).value.trim();
-    const amount = (document.getElementById('amount') as HTMLInputElement).value.trim();
-    const assetId = (document.getElementById('assetId') as HTMLInputElement).value.trim();
-    const recipient = (document.getElementById('recipient') as HTMLInputElement).value.trim();
-    const chainId = (document.getElementById('chainId') as HTMLInputElement).value.trim();
-    const successUrl = (document.getElementById('successUrl') as HTMLInputElement).value.trim();
-    const cancelUrl = (document.getElementById('cancelUrl') as HTMLInputElement).value.trim();
-
-    if (!apiUrl || !amount || !assetId || !recipient || !chainId) {
-      showResult('Please fill in all required fields', 'error');
-      return;
-    }
-
-    showLoading(submitBtn);
+  proceedBtn.addEventListener('click', async () => {
+    showLoading(proceedBtn);
     showResult('Creating checkout session...', 'info');
 
     try {
+      // Hardcoded demo values - 1 USDC
       const input: CreateCheckoutSessionInput = {
         amount: {
-          assetId,
-          amount,
+          assetId: 'nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1', // USDC on NEAR
+          amount: '1000000', // 1 USDC (6 decimals: 1 * 10^6 = 1000000)
         },
         recipient: {
-          address: recipient,
-          chainId,
+          address: 'jass.near',
+          chainId: 'near:mainnet',
         },
       };
 
-      if (successUrl) {
-        input.successUrl = successUrl;
-      }
-
-      if (cancelUrl) {
-        input.cancelUrl = cancelUrl;
-      }
-
       const response = await createCheckoutSession(apiUrl, input);
 
-      const checkoutUrl = new URL(response.sessionUrl);
-      checkoutUrl.searchParams.set('sessionId', response.session.sessionId);
-
-      showResult(
-        `
-          <strong>Checkout session created!</strong><br><br>
-          Session ID: <code>${response.session.sessionId}</code><br><br>
-          <a href="${checkoutUrl.toString()}" target="_blank" style="display: inline-block; margin-top: 12px; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
-            Open Checkout Page →
-          </a>
-        `,
-        'success'
-      );
+      // Redirect directly to checkout URL
+      window.location.href = response.sessionUrl;
     } catch (error) {
       console.error('Error creating checkout session:', error);
       showResult(
         `Failed to create checkout session: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'error'
       );
-    } finally {
-      hideLoading(submitBtn);
+      hideLoading(proceedBtn);
     }
   });
 });

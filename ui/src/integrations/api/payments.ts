@@ -2,20 +2,16 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/utils/orpc';
 
 export type PreparePaymentInput = {
-  request: {
+  input: {
+    sessionId: string;
+    payerAsset: {
+      assetId: string;
+      amount: string;
+    };
     payer: {
       address: string;
       chainId: string;
     };
-    recipient: {
-      address: string;
-      chainId: string;
-    };
-    asset: {
-      assetId: string;
-      amount: string;
-    };
-    memo?: string;
     idempotencyKey: string;
   };
 };

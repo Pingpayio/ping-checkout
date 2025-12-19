@@ -24,7 +24,8 @@
       "variables": {},
       "secrets": [
         "DATABASE_URL",
-        "DATABASE_AUTH_TOKEN"
+        "DATABASE_AUTH_TOKEN",
+        "NEAR_INTENTS_API_KEY"
       ]
     }
   }

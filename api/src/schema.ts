@@ -59,6 +59,13 @@ export const PaymentRequestSchema = z.object({
   idempotencyKey: z.string(),
 });
 
+export const PreparePaymentInputSchema = z.object({
+  sessionId: z.string(),
+  payerAsset: AssetAmountSchema, // User-selected payment asset (source)
+  payer: PartySchema, // User's address and chain
+  idempotencyKey: z.string(),
+});
+
 export const PaymentSchema = z.object({
   paymentId: z.string(),
   status: z.enum(['PENDING', 'SUCCESS', 'FAILED']),
@@ -112,6 +119,7 @@ export type GetCheckoutSessionInput = z.infer<typeof GetCheckoutSessionInputSche
 export type CreateCheckoutSessionResponse = z.infer<typeof CreateCheckoutSessionResponseSchema>;
 export type GetCheckoutSessionResponse = z.infer<typeof GetCheckoutSessionResponseSchema>;
 export type PaymentRequest = z.infer<typeof PaymentRequestSchema>;
+export type PreparePaymentInput = z.infer<typeof PreparePaymentInputSchema>;
 export type Payment = z.infer<typeof PaymentSchema>;
 export type QuoteData = z.infer<typeof QuoteDataSchema>;
 export type PreparePaymentResponse = z.infer<typeof PreparePaymentResponseSchema>;

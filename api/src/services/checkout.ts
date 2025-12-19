@@ -18,7 +18,8 @@ function isExpired(expiresAt: string | undefined): boolean {
 }
 
 function buildCheckoutUrl(sessionId: string): string {
-  const base = (process.env.CHECKOUT_UI_BASE_URL || 'http://localhost:3002').replace(/\/$/, '');
+  // Default to the host app port in this repo (host runs on 3001).
+  const base = (process.env.CHECKOUT_UI_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
   const url = new URL(`${base}/checkout`);
   url.searchParams.set('sessionId', sessionId);
   return url.toString();

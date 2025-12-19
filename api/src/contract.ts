@@ -6,6 +6,7 @@ import {
   GetCheckoutSessionInputSchema,
   GetCheckoutSessionResponseSchema,
   PaymentRequestSchema,
+  PreparePaymentInputSchema,
   PreparePaymentResponseSchema,
   SubmitPaymentInputSchema,
   SubmitPaymentResponseSchema,
@@ -36,7 +37,7 @@ export const contract = oc.router({
   payments: oc.router({
     prepare: oc
       .route({ method: 'POST', path: '/payments/prepare' })
-      .input(z.object({ request: PaymentRequestSchema }))
+      .input(z.object({ input: PreparePaymentInputSchema }))
       .output(PreparePaymentResponseSchema),
 
     submit: oc
