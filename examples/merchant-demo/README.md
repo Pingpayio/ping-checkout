@@ -50,7 +50,7 @@ const response = await fetch('http://localhost:3014/api/rpc/checkout/sessions', 
       amount: '1000000', // 1 USDC
     },
     recipient: {
-      address: 'merchant.near',
+      address: 'example-merchant.near', //add recipient's near address
       chainId: 'near:mainnet',
     },
     successUrl: 'https://yoursite.com/success',
