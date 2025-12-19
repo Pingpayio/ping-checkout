@@ -192,10 +192,14 @@ function CheckoutRoute() {
   const session = sessionData.session;
 
   const handlePaymentSuccess = () => {
-    // Navigate to processing page
+    // Navigate to processing page with deposit address
+    if (!paymentData?.depositAddress) {
+      toast.error('Deposit address not available');
+      return;
+    }
     navigate({
       to: '/checkout/processing',
-      search: { paymentId: paymentData?.payment.paymentId, sessionId },
+      search: { depositAddress: paymentData.depositAddress, sessionId },
     });
   };
 
@@ -251,14 +255,12 @@ function CheckoutRoute() {
                       className="px-4 py-3 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg text-left"
                     >
                       <div className="font-semibold">NEAR</div>
-                      <div className="text-xs text-muted-foreground">wrap.near</div>
                     </button>
                     <button
-                      onClick={() => setSelectedPaymentAsset({ assetId: 'nep141:usdc.near', amount: '0' })}
+                      onClick={() => setSelectedPaymentAsset({ assetId: 'nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1', amount: '0' })}
                       className="px-4 py-3 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg text-left"
                     >
                       <div className="font-semibold">USDC</div>
-                      <div className="text-xs text-muted-foreground">usdc.near</div>
                     </button>
                   </div>
                 </CardContent>
@@ -277,14 +279,20 @@ function CheckoutRoute() {
                       <span className="text-sm text-muted-foreground">You will spend:</span>
                       <span className="font-semibold text-lg">
                         {paymentData.quote?.amountInFormatted || 
-                         `${formatAssetAmount(paymentData.payment.request.asset.amount, selectedPaymentAsset.assetId)} ${getAssetSymbol(selectedPaymentAsset.assetId)}`}
+                         formatAssetAmount(paymentData.payment.request.asset.amount, selectedPaymentAsset.assetId)}{' '}
+                        {paymentData.quote?.quoteRequest?.originAsset 
+                          ? getAssetSymbol(paymentData.quote.quoteRequest.originAsset)
+                          : getAssetSymbol(selectedPaymentAsset.assetId)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b">
                       <span className="text-sm text-muted-foreground">Merchant receives:</span>
                       <span className="font-semibold text-lg">
                         {paymentData.quote?.amountOutFormatted || 
-                         `${formatAssetAmount(session.amount.amount, session.amount.assetId)} ${getAssetSymbol(session.amount.assetId)}`}
+                         formatAssetAmount(session.amount.amount, session.amount.assetId)}{' '}
+                        {paymentData.quote?.quoteRequest?.destinationAsset 
+                          ? getAssetSymbol(paymentData.quote.quoteRequest.destinationAsset)
+                          : getAssetSymbol(session.amount.assetId)}
                       </span>
                     </div>
                     {paymentData.depositAddress && (

@@ -31,7 +31,21 @@ export function formatAssetAmount(amount: string, assetId: string): string {
   return `${whole}.${trimmed}`;
 }
 
+/**
+ * Asset ID to name mapping
+ */
+const ASSET_ID_TO_NAME: Record<string, string> = {
+  'nep141:wrap.near': 'NEAR',
+  'nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1': 'USDC',
+};
+
 export function getAssetSymbol(assetId: string): string {
+  // Check exact match first
+  if (ASSET_ID_TO_NAME[assetId]) {
+    return ASSET_ID_TO_NAME[assetId];
+  }
+  
+  // Fallback to pattern matching
   const asset = assetId.replace(/^nep141:/, '').toLowerCase();
   if (asset.includes('usdc')) return 'USDC';
   if (asset.includes('usdt')) return 'USDT';

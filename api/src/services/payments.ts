@@ -118,14 +118,19 @@ interface QuoteResponseData {
   };
 }
 
+interface IntentsStatusResponse {
+  correlationId?: string;
+  quoteResponse?: unknown;
+  status: 'KNOWN_DEPOSIT' | 'TXPENDING_DEPOSIT' | 'INCOMPLETE_DEPOSIT' | 'PROCESSING' | 'SUCCESS' | 'REFUNDED' | 'FAILED';
+  updatedAt?: string;
+  swapDetails?: unknown;
+}
+
 interface StatusResponse {
-  status: 'SUCCESS' | 'REFUNDED' | 'PENDING' | string;
+  status: 'SUCCESS' | 'REFUNDED' | 'FAILED' | 'PENDING' | 'PROCESSING';
   txId?: string;
-  txHash?: string;
-  transactionId?: string;
   reason?: string;
-  message?: string;
-  error?: string;
+  updatedAt?: string;
 }
 
 export class PaymentsService {
@@ -259,16 +264,16 @@ export class PaymentsService {
         swapType: "EXACT_OUTPUT", // We want exact output (merchant's requested amount)
         slippageTolerance: 100, // 1%
         originAsset,
-        depositType: "INTENTS",
+        depositType: "ORIGIN_CHAIN",
         destinationAsset: destAsset,
         amount: destinationAsset.amount, // Amount merchant wants to receive
         refundTo: payer.address,
-        refundType: "INTENTS",
+        refundType: "ORIGIN_CHAIN",
         recipient: recipient.address,
         recipientType: "DESTINATION_CHAIN",
         deadline,
+        referral: 'ping-checkout',
       };
-      console.log('[payments] quote params for checkout', quoteParams);
 
       const url = `${this.ONECLICK_BASE_URL}/v0/quote`;
       
@@ -285,7 +290,6 @@ export class PaymentsService {
               headers,
               body: JSON.stringify(quoteParams),
             });
-            console.log('[payments] quote response status', response.status);
             
             if (!response.ok) {
               const data = await response.json().catch(() => ({})) as { message?: string; [key: string]: unknown };
@@ -365,20 +369,30 @@ export class PaymentsService {
               return { status: 'PENDING' } as StatusResponse;
             }
             
-            const data = await response.json() as StatusResponse;
+            const data = await response.json() as IntentsStatusResponse;
             
-            if (data.status === 'completed' || data.status === 'success') {
+            // Map intents API status to our status
+            if (data.status === 'SUCCESS') {
               return {
-                status: 'SUCCESS',
-                txId: data.txId || data.transactionId || data.txHash
+                status: 'SUCCESS' as const,
+                updatedAt: data.updatedAt,
               } as StatusResponse;
-            } else if (data.status === 'failed' || data.status === 'error' || data.status === 'REFUNDED') {
+            } else if (data.status === 'REFUNDED' || data.status === 'FAILED') {
               return {
-                status: 'REFUNDED',
-                reason: data.reason || data.message || data.error || 'Transaction failed'
+                status: data.status as 'REFUNDED' | 'FAILED',
+                updatedAt: data.updatedAt,
+              } as StatusResponse;
+            } else if (data.status === 'PROCESSING' || data.status === 'INCOMPLETE_DEPOSIT' || data.status === 'TXPENDING_DEPOSIT') {
+              return {
+                status: 'PROCESSING' as const,
+                updatedAt: data.updatedAt,
               } as StatusResponse;
             } else {
-              return { status: 'PENDING' } as StatusResponse;
+              // KNOWN_DEPOSIT or other pending states
+              return {
+                status: 'PENDING' as const,
+                updatedAt: data.updatedAt,
+              } as StatusResponse;
             }
           },
           catch: (error) => new Error(`Failed to check status: ${error instanceof Error ? error.message : String(error)}`),
@@ -518,6 +532,10 @@ export class PaymentsService {
           amountOut: quoteData.quote.amountOut,
           amountOutFormatted: quoteData.quote.amountOutFormatted,
           deadline: quoteData.quote.deadline,
+          quoteRequest: {
+            originAsset: quoteData.quoteRequest.originAsset,
+            destinationAsset: quoteData.quoteRequest.destinationAsset,
+          },
         } : undefined,
       };
 
@@ -527,9 +545,6 @@ export class PaymentsService {
         depositAddress: response.depositAddress,
         quote: response.quote,
       });
-      console.log(
-        `[payments] stored payment ${paymentId} (instance=${PAYMENTS_INSTANCE_ID}, idempotencyKey=${request.idempotencyKey}, count=${inMemoryPayments.size})`
-      );
 
       return response;
     });
@@ -689,6 +704,10 @@ export class PaymentsService {
           amountOut: quoteData.quote.amountOut,
           amountOutFormatted: quoteData.quote.amountOutFormatted,
           deadline: quoteData.quote.deadline,
+          quoteRequest: {
+            originAsset: quoteData.quoteRequest.originAsset,
+            destinationAsset: quoteData.quoteRequest.destinationAsset,
+          },
         } : undefined,
       };
 
@@ -698,9 +717,6 @@ export class PaymentsService {
         depositAddress: response.depositAddress,
         quote: response.quote,
       });
-      console.log(
-        `[payments] stored payment ${paymentId} (instance=${PAYMENTS_INSTANCE_ID}, idempotencyKey=${request.idempotencyKey}, count=${inMemoryPayments.size})`
-      );
 
       return response;
     });
@@ -779,6 +795,12 @@ export class PaymentsService {
 
       return { payment };
     });
+  }
+
+  getPaymentStatus(
+    depositAddress: string
+  ): Effect.Effect<StatusResponse, Error> {
+    return this.getIntentsStatus(depositAddress);
   }
 
   submitPayment(
