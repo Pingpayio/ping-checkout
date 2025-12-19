@@ -2,7 +2,7 @@
 
 ![Banner](https://pingpay.gitbook.io/docs/~gitbook/image?url=https%3A%2F%2F2412975227-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252F4y2jIy2xuLBz44dN9ue8%252Fuploads%252FdtjDAgTURmjEfNBefx2s%252FThe%2520Payment%2520Layer%2520for%2520the%2520Future%2520of%2520Commerce%2520%282%29.png%3Falt%3Dmedia%26token%3D1b23447b-795e-41ea-a11b-44dda7e36a5a&width=768&dpr=4&quality=100&sign=99531ead&sv=2)
 
-[website](https://pingpay.io) | [docs](https://docs.pingpay.io)
+[website](https://pingpay.io) | [docs](https://docs.pingpay.io) | [@pingpay_io](https://x.com/pingpay_io)
 
 </div>
 
