@@ -1,7 +1,5 @@
 import { Effect } from 'every-plugin/effect';
-import { eq } from 'drizzle-orm';
 import type { Database } from '../db';
-import { checkoutSessions } from '../db/schema';
 import type {
   CreateCheckoutSessionInput,
   CreateCheckoutSessionResponse,
@@ -11,6 +9,31 @@ import type {
 } from '../schema';
 import { randomBytes } from 'crypto';
 
+/**
+ * TEMPORARY: Local in-memory session store (no DB).
+ * - Lost on restart
+ * - Not shared across instances
+ */
+type StoredSession = {
+  merchantId: string;
+  session: CheckoutSession;
+};
+
+const inMemorySessions = new Map<string, StoredSession>();
+
+function isExpired(expiresAt: string | undefined): boolean {
+  if (!expiresAt) return false;
+  const t = Date.parse(expiresAt);
+  return Number.isFinite(t) ? t <= Date.now() : false;
+}
+
+function buildCheckoutUrl(sessionId: string): string {
+  const base = (process.env.CHECKOUT_UI_BASE_URL || 'http://localhost:3002').replace(/\/$/, '');
+  const url = new URL(`${base}/checkout`);
+  url.searchParams.set('sessionId', sessionId);
+  return url.toString();
+}
+
 export class CheckoutSessionNotFoundError extends Error {
   readonly _tag = 'CheckoutSessionNotFoundError';
   constructor(public sessionId: string) {
@@ -19,6 +42,7 @@ export class CheckoutSessionNotFoundError extends Error {
 }
 
 export class CheckoutService {
+  // Keep DB injected to avoid wider refactors; it is unused while in-memory mode is enabled.
   constructor(private db: Database) {}
 
   createSession(
@@ -30,31 +54,6 @@ export class CheckoutService {
       const now = new Date().toISOString();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-      const themeJson = input.theme ? JSON.stringify(input.theme) : null;
-      const metadataJson = input.metadata ? JSON.stringify(input.metadata) : null;
-
-      yield* _(
-        Effect.tryPromise({
-          try: () =>
-            this.db.insert(checkoutSessions).values({
-              id: sessionId,
-              merchantId,
-              amountAssetId: input.amount.assetId,
-              amountValue: input.amount.amount,
-              recipientAddress: input.recipient.address,
-              recipientChainId: input.recipient.chainId,
-              themeJson,
-              successUrl: input.successUrl,
-              cancelUrl: input.cancelUrl,
-              status: 'CREATED',
-              createdAt: now,
-              expiresAt,
-              metadataJson,
-            }),
-          catch: (error) => new Error(`Failed to create session: ${error}`),
-        })
-      );
-
       const session: CheckoutSession = {
         sessionId,
         status: 'CREATED',
@@ -62,14 +61,20 @@ export class CheckoutService {
         amount: input.amount,
         recipient: input.recipient,
         theme: input.theme,
-        successUrl: input.successUrl,
-        cancelUrl: input.cancelUrl,
+        // Response schema expects optional strings (undefined when absent), not nulls
+        successUrl: input.successUrl ?? undefined,
+        cancelUrl: input.cancelUrl ?? undefined,
         createdAt: now,
         expiresAt,
         metadata: input.metadata,
       };
 
-      const sessionUrl = `https://pay.pingpay.io/checkout/${sessionId}`;
+      // Store locally instead of DB
+      inMemorySessions.set(sessionId, { merchantId, session });
+
+      // Point to the local checkout UI in this repo by default.
+      // Override via CHECKOUT_UI_BASE_URL for other environments.
+      const sessionUrl = buildCheckoutUrl(sessionId);
 
       return { session, sessionUrl };
     });
@@ -80,48 +85,19 @@ export class CheckoutService {
     input: GetCheckoutSessionInput
   ): Effect.Effect<GetCheckoutSessionResponse, CheckoutSessionNotFoundError | Error> {
     return Effect.gen(this, function* (_) {
-      const rows = yield* _(
-        Effect.tryPromise({
-          try: () =>
-            this.db
-              .select()
-              .from(checkoutSessions)
-              .where(eq(checkoutSessions.id, input.sessionId))
-              .limit(1),
-          catch: (error) => new Error(`Failed to fetch session: ${error}`),
-        })
-      );
-
-      if (rows.length === 0) {
+      const stored = inMemorySessions.get(input.sessionId);
+      if (!stored || stored.merchantId !== merchantId) {
         return yield* _(Effect.fail(new CheckoutSessionNotFoundError(input.sessionId)));
       }
 
-      const row = rows[0]!;
+      if (isExpired(stored.session.expiresAt)) {
+        // mark expired + evict
+        const expired: CheckoutSession = { ...stored.session, status: 'EXPIRED' };
+        inMemorySessions.delete(input.sessionId);
+        return { session: expired };
+      }
 
-      const theme = row.themeJson ? JSON.parse(row.themeJson) : undefined;
-      const metadata = row.metadataJson ? JSON.parse(row.metadataJson) : undefined;
-
-      const session: CheckoutSession = {
-        sessionId: row.id,
-        status: row.status as CheckoutSession['status'],
-        paymentId: row.paymentId ?? null,
-        amount: {
-          assetId: row.amountAssetId,
-          amount: row.amountValue,
-        },
-        recipient: {
-          address: row.recipientAddress,
-          chainId: row.recipientChainId,
-        },
-        theme,
-        successUrl: row.successUrl ?? undefined,
-        cancelUrl: row.cancelUrl ?? undefined,
-        createdAt: row.createdAt,
-        expiresAt: row.expiresAt ?? undefined,
-        metadata,
-      };
-
-      return { session };
+      return { session: stored.session };
     });
   }
 }
