@@ -6,11 +6,14 @@ import {
   GetCheckoutSessionInputSchema,
   GetCheckoutSessionResponseSchema,
   PaymentRequestSchema,
+  PreparePaymentInputSchema,
   PreparePaymentResponseSchema,
   SubmitPaymentInputSchema,
   SubmitPaymentResponseSchema,
   GetPaymentInputSchema,
   GetPaymentResponseSchema,
+  GetPaymentStatusInputSchema,
+  GetPaymentStatusResponseSchema,
 } from './schema';
 
 export const contract = oc.router({
@@ -36,7 +39,7 @@ export const contract = oc.router({
   payments: oc.router({
     prepare: oc
       .route({ method: 'POST', path: '/payments/prepare' })
-      .input(z.object({ request: PaymentRequestSchema }))
+      .input(z.object({ input: PreparePaymentInputSchema }))
       .output(PreparePaymentResponseSchema),
 
     submit: oc
@@ -48,6 +51,11 @@ export const contract = oc.router({
       .route({ method: 'GET', path: '/payments/{paymentId}' })
       .input(GetPaymentInputSchema)
       .output(GetPaymentResponseSchema),
+
+    getStatus: oc
+      .route({ method: 'GET', path: '/payments/status' })
+      .input(GetPaymentStatusInputSchema)
+      .output(GetPaymentStatusResponseSchema),
   }),
 });
 

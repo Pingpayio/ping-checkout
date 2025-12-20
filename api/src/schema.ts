@@ -59,6 +59,13 @@ export const PaymentRequestSchema = z.object({
   idempotencyKey: z.string(),
 });
 
+export const PreparePaymentInputSchema = z.object({
+  sessionId: z.string(),
+  payerAsset: AssetAmountSchema, // User-selected payment asset (source)
+  payer: PartySchema, // User's address and chain
+  idempotencyKey: z.string(),
+});
+
 export const PaymentSchema = z.object({
   paymentId: z.string(),
   status: z.enum(['PENDING', 'SUCCESS', 'FAILED']),
@@ -70,8 +77,23 @@ export const PaymentSchema = z.object({
   updatedAt: z.string(),
 });
 
+export const QuoteDataSchema = z.object({
+  depositAddress: z.string(),
+  amountIn: z.string(),
+  amountInFormatted: z.string(),
+  amountOut: z.string(),
+  amountOutFormatted: z.string(),
+  deadline: z.string(),
+  quoteRequest: z.object({
+    originAsset: z.string(),
+    destinationAsset: z.string(),
+  }).optional(),
+}).optional();
+
 export const PreparePaymentResponseSchema = z.object({
   payment: PaymentSchema,
+  depositAddress: z.string().optional(),
+  quote: QuoteDataSchema,
 });
 
 export const SubmitPaymentInputSchema = z.object({
@@ -92,6 +114,17 @@ export const GetPaymentResponseSchema = z.object({
   payment: PaymentSchema,
 });
 
+export const GetPaymentStatusInputSchema = z.object({
+  depositAddress: z.string(),
+});
+
+export const GetPaymentStatusResponseSchema = z.object({
+  status: z.enum(['SUCCESS', 'REFUNDED', 'FAILED', 'PENDING', 'PROCESSING']),
+  txId: z.string().optional(),
+  reason: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
 export type Party = z.infer<typeof PartySchema>;
 export type AssetAmount = z.infer<typeof AssetAmountSchema>;
 export type Theme = z.infer<typeof ThemeSchema>;
@@ -101,9 +134,13 @@ export type GetCheckoutSessionInput = z.infer<typeof GetCheckoutSessionInputSche
 export type CreateCheckoutSessionResponse = z.infer<typeof CreateCheckoutSessionResponseSchema>;
 export type GetCheckoutSessionResponse = z.infer<typeof GetCheckoutSessionResponseSchema>;
 export type PaymentRequest = z.infer<typeof PaymentRequestSchema>;
+export type PreparePaymentInput = z.infer<typeof PreparePaymentInputSchema>;
 export type Payment = z.infer<typeof PaymentSchema>;
+export type QuoteData = z.infer<typeof QuoteDataSchema>;
 export type PreparePaymentResponse = z.infer<typeof PreparePaymentResponseSchema>;
 export type SubmitPaymentInput = z.infer<typeof SubmitPaymentInputSchema>;
 export type SubmitPaymentResponse = z.infer<typeof SubmitPaymentResponseSchema>;
 export type GetPaymentInput = z.infer<typeof GetPaymentInputSchema>;
 export type GetPaymentResponse = z.infer<typeof GetPaymentResponseSchema>;
+export type GetPaymentStatusInput = z.infer<typeof GetPaymentStatusInputSchema>;
+export type GetPaymentStatusResponse = z.infer<typeof GetPaymentStatusResponseSchema>;

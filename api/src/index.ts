@@ -111,7 +111,11 @@ export default createPlugin({
           
           try {
             const result = await Effect.runPromise(
-              paymentsService.preparePayment(merchantId, input.request)
+              paymentsService.preparePaymentFromSession(
+                merchantId,
+                input.input,
+                checkoutService
+              )
             );
             return result;
           } catch (error) {
@@ -162,6 +166,19 @@ export default createPlugin({
             }
             throw new ORPCError('INTERNAL_SERVER_ERROR', {
               message: error instanceof Error ? error.message : 'Failed to get payment',
+            });
+          }
+        }),
+
+        getStatus: builder.payments.getStatus.handler(async ({ input, context }) => {
+          try {
+            const result = await Effect.runPromise(
+              paymentsService.getPaymentStatus(input.depositAddress)
+            );
+            return result;
+          } catch (error) {
+            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+              message: error instanceof Error ? error.message : 'Failed to get payment status',
             });
           }
         }),

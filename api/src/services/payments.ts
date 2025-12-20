@@ -4,6 +4,7 @@ import type { Database } from '../db';
 import { payments } from '../db/schema';
 import type {
   PaymentRequest,
+  PreparePaymentInput,
   PreparePaymentResponse,
   SubmitPaymentInput,
   SubmitPaymentResponse,
@@ -11,6 +12,7 @@ import type {
   GetPaymentResponse,
   Payment,
 } from '../schema';
+import { CheckoutService, CheckoutSessionNotFoundError } from './checkout';
 import { randomBytes } from 'crypto';
 
 export class PaymentNotFoundError extends Error {
@@ -66,14 +68,57 @@ interface ExecutionResponse {
   [key: string]: unknown;
 }
 
+interface QuoteRequestParams {
+  dry?: boolean;
+  swapType: "EXACT_INPUT" | "EXACT_OUTPUT";
+  slippageTolerance: number;
+  originAsset: string;
+  depositType: "ORIGIN_CHAIN" | "INTENTS";
+  destinationAsset: string;
+  amount: string;
+  refundTo: string;
+  refundType: "ORIGIN_CHAIN" | "INTENTS";
+  recipient: string;
+  recipientType: "DESTINATION_CHAIN" | "INTENTS";
+  deadline: string;
+  referral?: string;
+  quoteWaitingTimeMs?: number;
+  appFees?: Array<{ recipient: string; fee: number }>;
+}
+
+interface QuoteResponseData {
+  timestamp: string;
+  signature: string;
+  quoteRequest: QuoteRequestParams;
+  quote: {
+    depositAddress: string;
+    amountIn: string;
+    amountInFormatted: string;
+    amountInUsd?: string;
+    minAmountIn?: string;
+    amountOut: string;
+    amountOutFormatted: string;
+    amountOutUsd?: string;
+    minAmountOut?: string;
+    deadline: string;
+    timeWhenInactive: string;
+    timeEstimate: number;
+  };
+}
+
+interface IntentsStatusResponse {
+  correlationId?: string;
+  quoteResponse?: unknown;
+  status: 'KNOWN_DEPOSIT' | 'TXPENDING_DEPOSIT' | 'INCOMPLETE_DEPOSIT' | 'PROCESSING' | 'SUCCESS' | 'REFUNDED' | 'FAILED';
+  updatedAt?: string;
+  swapDetails?: unknown;
+}
+
 interface StatusResponse {
-  status: 'SUCCESS' | 'REFUNDED' | 'PENDING' | string;
+  status: 'SUCCESS' | 'REFUNDED' | 'FAILED' | 'PENDING' | 'PROCESSING';
   txId?: string;
-  txHash?: string;
-  transactionId?: string;
   reason?: string;
-  message?: string;
-  error?: string;
+  updatedAt?: string;
 }
 
 export class PaymentsService {
@@ -180,6 +225,104 @@ export class PaymentsService {
     });
   }
 
+  private getIntentsQuoteForCheckout(
+    sourceAsset: { assetId: string; amount: string },
+    destinationAsset: { assetId: string; amount: string },
+    payer: { address: string; chainId?: string },
+    recipient: { address: string; chainId?: string }
+  ): Effect.Effect<QuoteResponseData, Error> {
+    return Effect.gen(this, function* (_) {
+      if (!this.apiKey) {
+        return yield* _(Effect.fail(new Error('NEAR_INTENTS_API_KEY not configured')));
+      }
+
+      const originAsset = sourceAsset.assetId.startsWith('nep141:') 
+        ? sourceAsset.assetId 
+        : `nep141:${sourceAsset.assetId}`;
+      const destAsset = destinationAsset.assetId.startsWith('nep141:') 
+        ? destinationAsset.assetId 
+        : `nep141:${destinationAsset.assetId}`;
+      
+      const deadline = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      
+      const quoteParams: QuoteRequestParams = {
+        dry: false,
+        swapType: "EXACT_OUTPUT",
+        slippageTolerance: 100,
+        originAsset,
+        depositType: "ORIGIN_CHAIN",
+        destinationAsset: destAsset,
+        amount: destinationAsset.amount,
+        refundTo: payer.address,
+        refundType: "ORIGIN_CHAIN",
+        recipient: recipient.address,
+        recipientType: "DESTINATION_CHAIN",
+        deadline,
+        referral: 'ping-checkout',
+      };
+
+      const url = `${this.ONECLICK_BASE_URL}/v0/quote`;
+      
+      const result = yield* _(
+        Effect.tryPromise({
+          try: async () => {
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.apiKey}`,
+            };
+            
+            const response = await fetch(url, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(quoteParams),
+            });
+            
+            if (!response.ok) {
+              const data = await response.json().catch(() => ({})) as { message?: string; [key: string]: unknown };
+              
+              if (response.status === 401 || response.status === 403) {
+                throw new ProviderAuthError(data.message || 'Authentication failed');
+              }
+              
+              if (response.status === 429) {
+                throw new ProviderRateLimitError(data.message || 'Rate limit exceeded');
+              }
+              
+              if (response.status >= 400) {
+                const message = data.message || 'Validation error';
+                throw new ProviderValidationError(message);
+              }
+              
+              throw new ProviderError(data.message || 'Failed to get quote');
+            }
+            
+            return await response.json() as QuoteResponseData;
+          },
+          catch: (error) => {
+            if (error instanceof ProviderAuthError || 
+                error instanceof ProviderRateLimitError || 
+                error instanceof ProviderValidationError || 
+                error instanceof ProviderError) {
+              return error;
+            }
+            return new Error(`Failed to get quote: ${error instanceof Error ? error.message : String(error)}`);
+          },
+        })
+      );
+      
+      return result;
+    });
+  }
+
+  private getIntentsQuote(request: PaymentRequest): Effect.Effect<QuoteResponseData, Error> {
+    return this.getIntentsQuoteForCheckout(
+      request.asset,
+      request.asset,
+      request.payer,
+      request.recipient
+    );
+  }
+
   getIntentsStatus(depositAddress: string): Effect.Effect<StatusResponse, Error> {
     return Effect.gen(this, function* (_) {
       const url = `${this.ONECLICK_BASE_URL}/v0/status`;
@@ -210,20 +353,28 @@ export class PaymentsService {
               return { status: 'PENDING' } as StatusResponse;
             }
             
-            const data = await response.json() as StatusResponse;
+            const data = await response.json() as IntentsStatusResponse;
             
-            if (data.status === 'completed' || data.status === 'success') {
+            if (data.status === 'SUCCESS') {
               return {
-                status: 'SUCCESS',
-                txId: data.txId || data.transactionId || data.txHash
+                status: 'SUCCESS' as const,
+                updatedAt: data.updatedAt,
               } as StatusResponse;
-            } else if (data.status === 'failed' || data.status === 'error' || data.status === 'REFUNDED') {
+            } else if (data.status === 'REFUNDED' || data.status === 'FAILED') {
               return {
-                status: 'REFUNDED',
-                reason: data.reason || data.message || data.error || 'Transaction failed'
+                status: data.status as 'REFUNDED' | 'FAILED',
+                updatedAt: data.updatedAt,
+              } as StatusResponse;
+            } else if (data.status === 'PROCESSING' || data.status === 'INCOMPLETE_DEPOSIT' || data.status === 'TXPENDING_DEPOSIT') {
+              return {
+                status: 'PROCESSING' as const,
+                updatedAt: data.updatedAt,
               } as StatusResponse;
             } else {
-              return { status: 'PENDING' } as StatusResponse;
+              return {
+                status: 'PENDING' as const,
+                updatedAt: data.updatedAt,
+              } as StatusResponse;
             }
           },
           catch: (error) => new Error(`Failed to check status: ${error instanceof Error ? error.message : String(error)}`),
@@ -231,6 +382,208 @@ export class PaymentsService {
       );
       
       return result;
+    });
+  }
+
+  preparePaymentFromSession(
+    merchantId: string,
+    input: PreparePaymentInput,
+    checkoutService: CheckoutService
+  ): Effect.Effect<PreparePaymentResponse, CheckoutSessionNotFoundError | Error> {
+    return Effect.gen(this, function* (_) {
+      const sessionResult = yield* _(
+        checkoutService.getSession(merchantId, { sessionId: input.sessionId })
+      );
+      const session = sessionResult.session;
+
+      const paymentRequest: PaymentRequest = {
+        payer: input.payer,
+        recipient: session.recipient,
+        asset: input.payerAsset,
+        idempotencyKey: input.idempotencyKey,
+      };
+
+      return yield* _(this.preparePaymentWithQuote(
+        merchantId,
+        paymentRequest,
+        input.payerAsset,
+        session.amount,
+        session.recipient
+      ));
+    });
+  }
+
+  private preparePaymentWithQuote(
+    merchantId: string,
+    request: PaymentRequest,
+    sourceAsset: { assetId: string; amount: string },
+    destinationAmount: { assetId: string; amount: string },
+    destinationRecipient: { address: string; chainId?: string }
+  ): Effect.Effect<PreparePaymentResponse, Error> {
+    return Effect.gen(this, function* (_) {
+      const existing = yield* _(
+        Effect.tryPromise({
+          try: () =>
+            this.db
+              .select()
+              .from(payments)
+              .where(
+                and(
+                  eq(payments.merchantId, merchantId),
+                  eq(payments.idempotencyKey, request.idempotencyKey)
+                )
+              )
+              .limit(1),
+          catch: (error) => new Error(`Failed to check existing payment: ${error}`),
+        })
+      );
+
+      if (existing.length > 0) {
+        const existingPayment = existing[0]!;
+        const payment: Payment = {
+          paymentId: existingPayment.id,
+          status: existingPayment.status as Payment['status'],
+          request: {
+            payer: {
+              address: existingPayment.payerAddress,
+            },
+            recipient: {
+              address: existingPayment.recipientAddress,
+            },
+            asset: {
+              assetId: existingPayment.assetId,
+              amount: existingPayment.amountValue,
+            },
+            memo: existingPayment.memo ?? undefined,
+            idempotencyKey: existingPayment.idempotencyKey,
+          },
+          createdAt: existingPayment.createdAt,
+          updatedAt: existingPayment.updatedAt,
+        };
+
+        if (existingPayment.quoteTotalFee && existingPayment.quoteAssetId) {
+          payment.feeQuote = {
+            totalFee: {
+              assetId: existingPayment.quoteAssetId,
+              amount: existingPayment.quoteTotalFee,
+            },
+          };
+        }
+
+        let depositAddress: string | undefined;
+        if (existingPayment.settlementRefs) {
+          try {
+            const refs = JSON.parse(existingPayment.settlementRefs) as Record<string, string>;
+            depositAddress = refs.depositAddress;
+          } catch {
+            // Ignore parse errors
+          }
+        }
+
+        return { 
+          payment,
+          depositAddress,
+        };
+      }
+
+      const paymentId = `pay_${randomBytes(16).toString('hex')}`;
+      const now = new Date().toISOString();
+
+      let quoteData: QuoteResponseData | null = null;
+      let depositAddress: string | null = null;
+      let quoteTotalFee: string | null = null;
+      let quoteAssetId: string | null = null;
+      let settlementRefs: Record<string, string> = {};
+
+      if (this.apiKey) {
+        try {
+          quoteData = yield* _(this.getIntentsQuoteForCheckout(
+            sourceAsset,
+            destinationAmount,
+            request.payer,
+            destinationRecipient
+          ));
+          depositAddress = quoteData.quote.depositAddress;
+          
+          if (quoteData.quote.amountIn && quoteData.quote.amountOut) {
+            const amountIn = BigInt(quoteData.quote.amountIn);
+            const amountOut = BigInt(quoteData.quote.amountOut);
+            if (amountIn > amountOut) {
+              quoteTotalFee = (amountIn - amountOut).toString();
+              quoteAssetId = sourceAsset.assetId;
+            }
+          }
+          
+          settlementRefs.quoteId = quoteData.signature;
+          settlementRefs.depositAddress = depositAddress;
+        } catch (error) {
+          console.error('Failed to get quote from intents API:', error);
+        }
+      }
+
+      const settlementRefsJson = Object.keys(settlementRefs).length > 0 
+        ? JSON.stringify(settlementRefs) 
+        : null;
+
+      yield* _(
+        Effect.tryPromise({
+          try: () =>
+            this.db.insert(payments).values({
+              id: paymentId,
+              merchantId,
+              status: 'PENDING',
+              payerAddress: request.payer.address,
+              recipientAddress: request.recipient.address,
+              assetId: request.asset.assetId,
+              amountValue: request.asset.amount,
+              memo: request.memo ?? null,
+              idempotencyKey: request.idempotencyKey,
+              quoteTotalFee,
+              quoteAssetId,
+              settlementRefs: settlementRefsJson,
+              metadata: null,
+              createdAt: now,
+              updatedAt: now,
+            }),
+          catch: (error) => new Error(`Failed to create payment: ${error}`),
+        })
+      );
+
+      const payment: Payment = {
+        paymentId,
+        status: 'PENDING',
+        request,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      if (quoteTotalFee && quoteAssetId) {
+        payment.feeQuote = {
+          totalFee: {
+            assetId: quoteAssetId,
+            amount: quoteTotalFee,
+          },
+        };
+      }
+
+      const response: PreparePaymentResponse = { 
+        payment,
+        depositAddress: depositAddress || undefined,
+        quote: quoteData ? {
+          depositAddress: quoteData.quote.depositAddress,
+          amountIn: quoteData.quote.amountIn,
+          amountInFormatted: quoteData.quote.amountInFormatted,
+          amountOut: quoteData.quote.amountOut,
+          amountOutFormatted: quoteData.quote.amountOutFormatted,
+          deadline: quoteData.quote.deadline,
+          quoteRequest: {
+            originAsset: quoteData.quoteRequest.originAsset,
+            destinationAsset: quoteData.quoteRequest.destinationAsset,
+          },
+        } : undefined,
+      };
+
+      return response;
     });
   }
 
@@ -288,11 +641,53 @@ export class PaymentsService {
           };
         }
 
-        return { payment };
+        let depositAddress: string | undefined;
+        if (existingPayment.settlementRefs) {
+          try {
+            const refs = JSON.parse(existingPayment.settlementRefs) as Record<string, string>;
+            depositAddress = refs.depositAddress;
+          } catch {
+            // Ignore parse errors
+          }
+        }
+
+        return { 
+          payment,
+          depositAddress,
+        };
       }
 
       const paymentId = `pay_${randomBytes(16).toString('hex')}`;
       const now = new Date().toISOString();
+
+      let quoteData: QuoteResponseData | null = null;
+      let depositAddress: string | null = null;
+      let quoteTotalFee: string | null = null;
+      let quoteAssetId: string | null = null;
+      let settlementRefs: Record<string, string> = {};
+
+      try {
+        quoteData = yield* _(this.getIntentsQuote(request));
+        depositAddress = quoteData.quote.depositAddress;
+        
+        if (quoteData.quote.amountIn && quoteData.quote.amountOut) {
+          const amountIn = BigInt(quoteData.quote.amountIn);
+          const amountOut = BigInt(quoteData.quote.amountOut);
+          if (amountIn > amountOut) {
+            quoteTotalFee = (amountIn - amountOut).toString();
+            quoteAssetId = request.asset.assetId;
+          }
+        }
+        
+        settlementRefs.quoteId = quoteData.signature;
+        settlementRefs.depositAddress = depositAddress;
+      } catch (error) {
+        console.error('Failed to get quote from intents API:', error);
+      }
+
+      const settlementRefsJson = Object.keys(settlementRefs).length > 0 
+        ? JSON.stringify(settlementRefs) 
+        : null;
 
       yield* _(
         Effect.tryPromise({
@@ -307,9 +702,9 @@ export class PaymentsService {
               amountValue: request.asset.amount,
               memo: request.memo ?? null,
               idempotencyKey: request.idempotencyKey,
-              quoteTotalFee: null,
-              quoteAssetId: null,
-              settlementRefs: null,
+              quoteTotalFee,
+              quoteAssetId,
+              settlementRefs: settlementRefsJson,
               metadata: null,
               createdAt: now,
               updatedAt: now,
@@ -326,7 +721,33 @@ export class PaymentsService {
         updatedAt: now,
       };
 
-      return { payment };
+      if (quoteTotalFee && quoteAssetId) {
+        payment.feeQuote = {
+          totalFee: {
+            assetId: quoteAssetId,
+            amount: quoteTotalFee,
+          },
+        };
+      }
+
+      const response: PreparePaymentResponse = { 
+        payment,
+        depositAddress: depositAddress || undefined,
+        quote: quoteData ? {
+          depositAddress: quoteData.quote.depositAddress,
+          amountIn: quoteData.quote.amountIn,
+          amountInFormatted: quoteData.quote.amountInFormatted,
+          amountOut: quoteData.quote.amountOut,
+          amountOutFormatted: quoteData.quote.amountOutFormatted,
+          deadline: quoteData.quote.deadline,
+          quoteRequest: {
+            originAsset: quoteData.quoteRequest.originAsset,
+            destinationAsset: quoteData.quoteRequest.destinationAsset,
+          },
+        } : undefined,
+      };
+
+      return response;
     });
   }
 
@@ -341,12 +762,7 @@ export class PaymentsService {
             this.db
               .select()
               .from(payments)
-              .where(
-                and(
-                  eq(payments.id, input.paymentId),
-                  eq(payments.merchantId, merchantId)
-                )
-              )
+              .where(eq(payments.id, input.paymentId))
               .limit(1),
           catch: (error) => new Error(`Failed to fetch payment: ${error}`),
         })
@@ -357,7 +773,6 @@ export class PaymentsService {
       }
 
       const row = rows[0]!;
-
       const payment: Payment = {
         paymentId: row.id,
         status: row.status as Payment['status'],
@@ -390,6 +805,12 @@ export class PaymentsService {
 
       return { payment };
     });
+  }
+
+  getPaymentStatus(
+    depositAddress: string
+  ): Effect.Effect<StatusResponse, Error> {
+    return this.getIntentsStatus(depositAddress);
   }
 
   submitPayment(
