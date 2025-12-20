@@ -9,7 +9,7 @@ interface PaymentSummaryProps {
 
 export function PaymentSummary({ session, paymentData }: PaymentSummaryProps) {
   const formatAmount = (amount: string, assetId: string) => {
-    // Simple formatting - in production, you'd want to handle decimals properly
+    // TODO: handle decimals properly
     const assetSymbol = assetId.replace(/^nep141:/, '').split('.')[0].toUpperCase();
     return `${amount} ${assetSymbol}`;
   };

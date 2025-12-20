@@ -5,7 +5,6 @@ import { QueryCache, QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { contract } from '../../../api/src/contract';
 
-// oRPC RPC endpoint is mounted under `/api/rpc` (see `host/server.ts`).
 export const API_URL = `${window.location.origin}/api/rpc`;
 
 export const queryClient = new QueryClient({

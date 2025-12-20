@@ -9,6 +9,7 @@ import type {
   CheckoutSession,
 } from '../schema';
 import { randomBytes } from 'crypto';
+import { checkoutSessions } from '@/db/schema';
 
 function isExpired(expiresAt: string | undefined): boolean {
   if (!expiresAt) return false;
@@ -32,7 +33,6 @@ export class CheckoutSessionNotFoundError extends Error {
 }
 
 export class CheckoutService {
-  // Keep DB injected to avoid wider refactors; it is unused while in-memory mode is enabled.
   constructor(private db: Database) {}
 
   createSession(
@@ -40,7 +40,6 @@ export class CheckoutService {
     input: CreateCheckoutSessionInput
   ): Effect.Effect<CreateCheckoutSessionResponse, Error> {
     return Effect.gen(this, function* (_) {
-      // TODO: use db to create session
       const sessionId = `cs_${randomBytes(16).toString('hex')}`;
       const now = new Date().toISOString();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
