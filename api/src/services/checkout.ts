@@ -9,7 +9,7 @@ import type {
   CheckoutSession,
 } from '../schema';
 import { randomBytes } from 'crypto';
-import { checkoutSessions } from '@/db/schema';
+import { checkoutSessions } from '../db/schema';
 
 function isExpired(expiresAt: string | undefined): boolean {
   if (!expiresAt) return false;
