@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
           amount: '1000000', // 1 USDC (6 decimals: 1 * 10^6 = 1000000)
         },
         recipient: {
-          address: 'example-merchant.near', //add recipient's near address
+          address: 'chillguyy.near', //add recipient's near address
           chainId: 'near:mainnet',
         },
       };
