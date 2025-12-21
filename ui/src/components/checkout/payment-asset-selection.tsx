@@ -68,6 +68,11 @@ export const PaymentAssetSelection = ({
     }
   };
 
+  // Log payment data for debugging
+  console.log('[PaymentAssetSelection] Full paymentData:', paymentData);
+  console.log('[PaymentAssetSelection] Quote details:', paymentData?.quote);
+  console.log('[PaymentAssetSelection] Payment details:', paymentData?.payment);
+
   return (
     <div
       className="flex flex-col gap-[21px]"
