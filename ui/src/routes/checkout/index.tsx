@@ -4,13 +4,15 @@ import { usePreparePayment } from '@/integrations/api/payments';
 import { useQuery } from '@tanstack/react-query';
 import { sessionQueryOptions } from '@/lib/session';
 import { authClient } from '@/lib/auth-client';
-import { PaymentButton } from '@/components/checkout/payment-button';
 import { useEffect, useState, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/loading';
 import { toast } from 'sonner';
 import { queryClient } from '@/utils/orpc';
-import { formatAssetAmount, getAssetSymbol } from '@/utils/format';
+import { PaymentMethodSelection } from '@/components/checkout/payment-method-selection';
+import { WalletConnectStep } from '@/components/checkout/wallet-connect-step';
+import { PaymentAssetSelection } from '@/components/checkout/payment-asset-selection';
+import { formatAssetAmount } from '@/utils/format';
 
 export const Route = createFileRoute('/checkout/')({
   validateSearch: (search: Record<string, unknown>) => {
@@ -30,19 +32,32 @@ function CheckoutRoute() {
   const { data: sessionData, isLoading: sessionLoading, error: sessionError } = useGetCheckoutSession(sessionId);
   const preparePayment = usePreparePayment();
   const [paymentData, setPaymentData] = useState<Awaited<ReturnType<typeof preparePayment.mutateAsync>> | null>(null);
-  
+
   // Auth flow state
   const [isConnectingWallet, setIsConnectingWallet] = useState(false);
   const [isSigningInWithNear, setIsSigningInWithNear] = useState(false);
-  
+
+  // Payment method selection (wallet, card, or deposit)
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card' | 'deposit' | null>(null);
+
   // Payment asset selection (user chooses what to pay with)
   const [selectedPaymentAsset, setSelectedPaymentAsset] = useState<{ assetId: string; amount: string } | null>(null);
-  
+
+  // Pre-connection asset selection (before wallet is connected)
+  const [preConnectionAssetId, setPreConnectionAssetId] = useState<string>('nep141:wrap.near');
+
+  // Auto-select pre-connection asset when wallet connects
+  useEffect(() => {
+    if (isConnected && paymentMethod === 'wallet' && !selectedPaymentAsset) {
+      setSelectedPaymentAsset({ assetId: preConnectionAssetId, amount: '0' });
+    }
+  }, [isConnected, paymentMethod, selectedPaymentAsset, preConnectionAssetId]);
+
   // Track which payment attempts we've made to prevent infinite loops
   // Key: `${sessionId}_${accountId}_${assetId}`
   const attemptedPayments = useRef<Set<string>>(new Set());
 
-  // Auth handlers (same as login page)
+  // Auth handlers
   const handleWalletConnect = async () => {
     setIsConnectingWallet(true);
     try {
@@ -80,7 +95,6 @@ function CheckoutRoute() {
           onSuccess: () => {
             setIsSigningInWithNear(false);
             queryClient.invalidateQueries({ queryKey: ['session'] });
-            // Get fresh accountId after sign-in
             const freshAccountId = authClient.near.getAccountId();
             toast.success(`Signed in as: ${freshAccountId || accountId}`);
           },
@@ -112,41 +126,61 @@ function CheckoutRoute() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await authClient.near.disconnect();
+      await authClient.signOut();
+      queryClient.invalidateQueries({ queryKey: ['session'] });
+      setPaymentMethod(null);
+      setSelectedPaymentAsset(null);
+      setPaymentData(null);
+      toast.success("Logged out successfully");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout");
+    }
+  };
+
   // Auto-prepare payment when wallet is connected and asset is selected
   const sessionIdForPayment = sessionData?.session?.sessionId;
+  const selectedAssetId = selectedPaymentAsset?.assetId;
+  const selectedAssetAmount = selectedPaymentAsset?.amount;
+
   useEffect(() => {
     if (
-      isConnected && 
-      accountId && 
-      sessionIdForPayment && 
-      selectedPaymentAsset &&
-      !paymentData && 
+      isConnected &&
+      accountId &&
+      sessionIdForPayment &&
+      selectedAssetId &&
+      !paymentData &&
       !preparePayment.isPending
     ) {
-      const attemptKey = `${sessionIdForPayment}_${accountId}_${selectedPaymentAsset.assetId}`;
+      const attemptKey = `${sessionIdForPayment}_${accountId}_${selectedAssetId}`;
       if (attemptedPayments.current.has(attemptKey)) {
-        return; // Already attempted this combination
+        return;
       }
-      
+
       attemptedPayments.current.add(attemptKey);
       const session = sessionData.session;
-      const idempotencyKey = `checkout_${session.sessionId}_${accountId}_${selectedPaymentAsset.assetId}_${Date.now()}`;
+      const payerAsset = { assetId: selectedAssetId, amount: selectedAssetAmount || '0' };
+      const idempotencyKey = `checkout_${session.sessionId}_${accountId}_${selectedAssetId}_${Date.now()}`;
       console.log('[checkout] preparing payment', {
         sessionId: session.sessionId,
         payer: accountId,
-        payerAsset: selectedPaymentAsset,
+        payerAsset,
+        tokenIn: payerAsset.assetId,
         destination: session.amount,
         recipient: session.recipient,
       });
-      
+
       preparePayment.mutate(
         {
           input: {
             sessionId: session.sessionId,
-            payerAsset: selectedPaymentAsset,
+            payerAsset,
             payer: {
               address: accountId,
-              chainId: 'near:mainnet', // For now, only NEAR
+              chainId: 'near:mainnet',
             },
             idempotencyKey,
           },
@@ -157,14 +191,11 @@ function CheckoutRoute() {
           },
           onError: (error) => {
             console.error('Failed to prepare payment:', error);
-            // Don't remove from set - prevents infinite retry loop
-            // User can refresh page if they want to retry
           },
         }
       );
     }
-    // Only depend on stable primitive values
-  }, [isConnected, accountId, sessionIdForPayment, selectedPaymentAsset?.assetId, paymentData, preparePayment.isPending]);
+  }, [isConnected, accountId, sessionIdForPayment, selectedAssetId, selectedAssetAmount, paymentData, preparePayment.isPending]);
 
   if (sessionLoading) {
     return (
@@ -191,170 +222,117 @@ function CheckoutRoute() {
 
   const session = sessionData.session;
 
+  console.log('[CheckoutRoute] Session data:', session);
+
   const handlePaymentSuccess = () => {
-    // Navigate to processing page with deposit address
     if (!paymentData?.depositAddress) {
       toast.error('Deposit address not available');
       return;
     }
+
+    // Format payment details for the processing page
+    const paymentAmount = paymentData.quote?.amountInFormatted || `${session.amount.amount} USDC`;
+    const asset = selectedPaymentAsset ? selectedPaymentAsset.assetId.includes('usdc') ? 'USDC' : 'NEAR' : 'USDC';
+    const network = 'NEAR Protocol';
+
+    // Calculate pricing rate correctly
+    // amountIn is what user pays, amountOut is what merchant receives
+    const pricingRate = paymentData.quote && paymentData.quote.amountInFormatted && paymentData.quote.amountOutFormatted
+      ? `1 USD ≈ ${(parseFloat(paymentData.quote.amountInFormatted) / parseFloat(paymentData.quote.amountOutFormatted)).toFixed(4)} ${asset}`
+      : '1 USD ≈ 0 NEAR';
+
+    // Format fee amounts properly using formatAssetAmount
+    const feeAmount = paymentData.payment.feeQuote?.totalFee?.amount || '0';
+    const feeAssetId = paymentData.payment.feeQuote?.totalFee?.assetId || 'nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1';
+
+    // Use formatAssetAmount to handle any asset type correctly
+    const formattedFee = feeAmount !== '0'
+      ? formatAssetAmount(feeAmount, feeAssetId)
+      : '0.00';
+
+    const networkFee = `$${formattedFee}`;
+    const pingpayFee = '$0.00';
+    const totalFee = `$${formattedFee}`;
+
     navigate({
       to: '/checkout/processing',
-      search: { depositAddress: paymentData.depositAddress, sessionId },
+      search: {
+        depositAddress: paymentData.depositAddress,
+        sessionId,
+        paymentAmount,
+        asset,
+        network,
+        pricingRate,
+        networkFee,
+        pingpayFee,
+        totalFee,
+      },
     });
   };
 
+  const handleAssetChange = (assetId: string) => {
+    setSelectedPaymentAsset({ assetId, amount: '0' });
+    setPaymentData(null);
+    // Clear attempted payments when switching assets to allow re-preparation
+    attemptedPayments.current.clear();
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Checkout</h1>
-          <p className="text-muted-foreground mt-2">Complete your payment</p>
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--widget-fill)' }}>
+      {/* DEV: Logout Button */}
+      {isConnected && (
+        <div className="fixed top-4 right-4 z-50">
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 text-sm font-mono border border-border bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-all"
+          >
+            logout ({accountId})
+          </button>
         </div>
+      )}
 
-        {!isConnected ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Sign in</CardTitle>
-              <CardDescription>Sign in with your NEAR wallet to continue</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {!accountId ? (
-                <button
-                  onClick={handleWalletConnect}
-                  disabled={isConnectingWallet || isSigningInWithNear}
-                  className="w-full px-6 py-4 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isConnectingWallet ? "connecting..." : "connect near wallet"}
-                </button>
-              ) : (
-                <button
-                  onClick={handleNearSignIn}
-                  disabled={isConnectingWallet || isSigningInWithNear}
-                  className="w-full px-6 py-4 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSigningInWithNear ? "signing in..." : `sign in as ${accountId}`}
-                </button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {!selectedPaymentAsset && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Select Payment Method</CardTitle>
-                  <CardDescription>Choose what you want to pay with</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Paying on: <span className="font-mono">NEAR Mainnet</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setSelectedPaymentAsset({ assetId: 'nep141:wrap.near', amount: '0' })}
-                      className="px-4 py-3 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg text-left"
-                    >
-                      <div className="font-semibold">NEAR</div>
-                    </button>
-                    <button
-                      onClick={() => setSelectedPaymentAsset({ assetId: 'nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1', amount: '0' })}
-                      className="px-4 py-3 text-sm font-mono border border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-all rounded-lg text-left"
-                    >
-                      <div className="font-semibold">USDC</div>
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+      <div className="w-full max-w-[500px]">
+        {/* Step 1: Payment Method Selection */}
+        {!paymentMethod && (
+          <PaymentMethodSelection
+            amount={session.amount.amount}
+            assetId={session.amount.assetId}
+            onSelectMethod={setPaymentMethod}
+          />
+        )}
 
-            {selectedPaymentAsset && paymentData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Payment Quote</CardTitle>
-                  <CardDescription>Review the payment details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <span className="text-sm text-muted-foreground">You will spend:</span>
-                      <span className="font-semibold text-lg">
-                        {paymentData.quote?.amountInFormatted || 
-                         formatAssetAmount(paymentData.payment.request.asset.amount, selectedPaymentAsset.assetId)}{' '}
-                        {paymentData.quote?.quoteRequest?.originAsset 
-                          ? getAssetSymbol(paymentData.quote.quoteRequest.originAsset)
-                          : getAssetSymbol(selectedPaymentAsset.assetId)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <span className="text-sm text-muted-foreground">Merchant receives:</span>
-                      <span className="font-semibold text-lg">
-                        {paymentData.quote?.amountOutFormatted || 
-                         formatAssetAmount(session.amount.amount, session.amount.assetId)}{' '}
-                        {paymentData.quote?.quoteRequest?.destinationAsset 
-                          ? getAssetSymbol(paymentData.quote.quoteRequest.destinationAsset)
-                          : getAssetSymbol(session.amount.assetId)}
-                      </span>
-                    </div>
-                    {paymentData.depositAddress && (
-                      <div className="pt-2">
-                        <div className="text-xs text-muted-foreground mb-1">Deposit Address:</div>
-                        <div className="font-mono text-xs break-all bg-muted/50 p-2 rounded">
-                          {paymentData.depositAddress}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+        {/* Step 2: Wallet Connect */}
+        {paymentMethod === 'wallet' && !isConnected && (
+          <WalletConnectStep
+            amount={session.amount.amount}
+            assetId={session.amount.assetId}
+            accountId={accountId}
+            isConnectingWallet={isConnectingWallet}
+            isSigningInWithNear={isSigningInWithNear}
+            selectedPaymentAssetId={preConnectionAssetId}
+            onConnect={handleWalletConnect}
+            onSignIn={handleNearSignIn}
+            onBack={() => setPaymentMethod(null)}
+            onAssetChange={setPreConnectionAssetId}
+          />
+        )}
 
-            {selectedPaymentAsset && !paymentData && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-sm text-muted-foreground text-center">
-                    Selected: <span className="font-mono text-foreground">
-                      {getAssetSymbol(selectedPaymentAsset.assetId)}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {preparePayment.isPending && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center text-muted-foreground">Preparing payment...</div>
-                </CardContent>
-              </Card>
-            )}
-
-            {preparePayment.isError && !paymentData && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <p className="text-destructive mb-2">Failed to prepare payment</p>
-                    <p className="text-sm text-muted-foreground">
-                      {preparePayment.error instanceof Error 
-                        ? preparePayment.error.message 
-                        : 'Please try again or refresh the page'}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {paymentData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Complete Payment</CardTitle>
-                  <CardDescription>Send payment to the deposit address</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <PaymentButton paymentData={paymentData} onSuccess={handlePaymentSuccess} />
-                </CardContent>
-              </Card>
-            )}
-          </>
+        {/* Step 3: Payment Asset Selection */}
+        {paymentMethod === 'wallet' && isConnected && (
+          <PaymentAssetSelection
+            amount={session.amount.amount}
+            assetId={session.amount.assetId}
+            selectedPaymentAsset={selectedPaymentAsset}
+            paymentData={paymentData}
+            accountId={accountId}
+            onBack={() => {
+              setPaymentMethod(null);
+              setSelectedPaymentAsset(null);
+              setPaymentData(null);
+            }}
+            onAssetChange={handleAssetChange}
+            onPaymentSuccess={handlePaymentSuccess}
+          />
         )}
 
         {session.cancelUrl && (
@@ -371,4 +349,3 @@ function CheckoutRoute() {
     </div>
   );
 }
-
