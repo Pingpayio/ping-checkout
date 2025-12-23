@@ -60,3 +60,22 @@ export function getAssetBySymbol(symbol: string): NearAsset | undefined {
   return getAssetByDisplayName(displayName);
 }
 
+/**
+ * Convert ProcessedToken to asset format for payment preparation
+ * Maps token symbols to API symbols using the display-to-symbol mapping
+ */
+export function tokenToAssetFormat(token: { symbol: string; accountId: string }): {
+  chain: string;
+  symbol: string;
+} {
+  // For native NEAR, use wnear as the symbol
+  if (token.accountId === 'NATIVE' || token.symbol === 'NEAR') {
+    return { chain: 'NEAR', symbol: 'wnear' };
+  }
+  
+  // For other tokens, use the symbol directly (it should match API symbols)
+  // If it doesn't match, try to map it
+  const apiSymbol = getAssetSymbol(token.symbol);
+  return { chain: 'NEAR', symbol: apiSymbol };
+}
+

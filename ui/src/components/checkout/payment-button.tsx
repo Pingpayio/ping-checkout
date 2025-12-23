@@ -45,12 +45,20 @@ export function PaymentButton({ paymentData, selectedPaymentAsset, onSuccess, on
       const assetId = paymentData.payment?.request?.asset?.assetId;
       
       // Determine if this is a native NEAR transfer or NEP-141 token transfer
-      const isNativeNear = selectedPaymentAsset.asset.symbol === 'NEAR' ||
-                           selectedPaymentAsset.asset.symbol === 'WRAP' ||
-                           (assetId && (assetId === 'nep141:wrap.near' || assetId.toLowerCase().includes('wrap.near')));
+      // 
+      // Important: Intents API only has wnear, so when user wants to pay in NEAR,
+      // the API resolves it to nep141:wrap.near. However, the user should transfer
+      // native NEAR (not wrapped) to the deposit address.
+      //
+      // For other tokens (USDC, USDT, etc.), transfer the specific FT token.
+      const isNativeNear = assetId && (
+        assetId === 'nep141:wrap.near' || 
+        assetId.toLowerCase().includes('wrap.near')
+      );
 
       if (isNativeNear) {
-        // Native NEAR transfer
+        // Native NEAR transfer - user transfers native NEAR to deposit address
+        // (even though API uses wnear internally)
         // amountIn is in yoctoNEAR (string from quote)
         // Convert yoctoNEAR to NEAR format for near-kit
         const amountInBigInt = BigInt(amountIn);

@@ -146,15 +146,13 @@ function CheckoutRoute() {
 
   // Auto-prepare payment when wallet is connected and asset is selected
   const sessionIdForPayment = sessionData?.session?.sessionId;
-  const selectedAssetId = selectedPaymentAsset?.assetId;
-  const selectedAssetAmount = selectedPaymentAsset?.amount;
 
   useEffect(() => {
     if (
       isConnected &&
       accountId &&
       sessionIdForPayment &&
-      selectedAssetId &&
+      selectedPaymentAsset &&
       !paymentData &&
       !preparePayment.isPending
     ) {
@@ -169,8 +167,7 @@ function CheckoutRoute() {
       console.log('[checkout] preparing payment', {
         sessionId: session.sessionId,
         payer: accountId,
-        payerAsset,
-        tokenIn: payerAsset.assetId,
+        payerAsset: selectedPaymentAsset,
         destination: session.amount,
         recipient: session.recipient,
       });
@@ -179,7 +176,7 @@ function CheckoutRoute() {
         {
           input: {
             sessionId: session.sessionId,
-            payerAsset,
+            payerAsset: selectedPaymentAsset,
             payer: {
               address: accountId,
             },
@@ -233,7 +230,7 @@ function CheckoutRoute() {
 
     // Format payment details for the processing page
     const paymentAmount = paymentData.quote?.amountInFormatted || `${session.amount.amount} USDC`;
-    const asset = selectedPaymentAsset ? selectedPaymentAsset.assetId.includes('usdc') ? 'USDC' : 'NEAR' : 'USDC';
+    const asset = selectedPaymentAsset?.asset.symbol || 'USDC';
     const network = 'NEAR Protocol';
 
     // Calculate pricing rate correctly

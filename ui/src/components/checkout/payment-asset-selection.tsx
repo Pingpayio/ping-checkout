@@ -10,6 +10,7 @@ import { AssetNetworkSelector } from './asset-network-selector';
 import { AssetSelectionModal } from './asset-selection-modal';
 import { useUserTokens, type ProcessedToken } from '@/hooks/use-user-tokens';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { tokenToAssetFormat } from '@/utils/assets';
 
 // Format crypto amount to max 8 decimal places, removing trailing zeros
 const formatCryptoAmount = (amount: string | number): string => {
@@ -50,22 +51,23 @@ export const PaymentAssetSelection = ({
   const { tokens } = useUserTokens(accountIdProp || undefined);
 
   // Find the current selected token from the tokens list
+  // Match by comparing the token's symbol with the selected asset's symbol
   const currentToken = tokens.find((token) => {
-    if (token.accountId === 'NATIVE') {
-      // Native NEAR - check if selected asset is wrap.near
-      return selectedPaymentAsset?.assetId === 'nep141:wrap.near';
-    }
-    return `nep141:${token.accountId}` === selectedPaymentAsset?.assetId;
+    if (!selectedPaymentAsset) return false;
+    
+    // Convert token to asset format for comparison
+    const tokenAsset = tokenToAssetFormat(token);
+    return (
+      tokenAsset.chain === selectedPaymentAsset.asset.chain &&
+      tokenAsset.symbol === selectedPaymentAsset.asset.symbol
+    );
   });
 
   // Handler for token selection from modal
   const handleTokenSelect = (token: ProcessedToken) => {
-    if (token.accountId === 'NATIVE') {
-      // For native NEAR, use wrap.near as the asset ID
-      onAssetChange('nep141:wrap.near');
-    } else {
-      onAssetChange(`nep141:${token.accountId}`);
-    }
+    // Convert ProcessedToken to our asset format (chain + symbol)
+    const assetFormat = tokenToAssetFormat(token);
+    onAssetChange(assetFormat.chain, assetFormat.symbol);
   };
 
   // Log payment data for debugging
@@ -137,9 +139,9 @@ export const PaymentAssetSelection = ({
             )}
 
             <AssetNetworkSelector
-              symbol={selectedPaymentAsset ? getAssetSymbol(selectedPaymentAsset.assetId) : 'USDC'}
+              symbol={selectedPaymentAsset?.asset.symbol || 'USDC'}
               icon={currentToken?.icon}
-              network="NEAR"
+              network={selectedPaymentAsset?.asset.chain || 'NEAR'}
               onClick={() => setIsModalOpen(true)}
             />
           </div>
@@ -314,7 +316,7 @@ export const PaymentAssetSelection = ({
         onOpenChange={setIsModalOpen}
         accountId={accountIdProp || undefined}
         onSelectToken={handleTokenSelect}
-        selectedTokenAccountId={selectedPaymentAsset?.assetId.replace('nep141:', '')}
+        selectedTokenAccountId={currentToken?.accountId}
       />
     </div>
   );
