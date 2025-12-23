@@ -10,6 +10,7 @@ import type {
 } from '../schema';
 import { randomBytes } from 'crypto';
 import { checkoutSessions } from '../db/schema';
+import { resolveAssetId } from './oneclick-tokens';
 
 function isExpired(expiresAt: string | undefined): boolean {
   if (!expiresAt) return false;
@@ -40,6 +41,9 @@ export class CheckoutService {
     input: CreateCheckoutSessionInput
   ): Effect.Effect<CreateCheckoutSessionResponse, Error> {
     return Effect.gen(this, function* (_) {
+      // Resolve assetId from chain and symbol
+      const assetId = yield* _(resolveAssetId(input.asset.symbol, input.asset.chain));
+      
       const sessionId = `cs_${randomBytes(16).toString('hex')}`;
       const now = new Date().toISOString();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -47,14 +51,20 @@ export class CheckoutService {
       const themeJson = input.theme ? JSON.stringify(input.theme) : null;
       const metadataJson = input.metadata ? JSON.stringify(input.metadata) : null;
 
+      // Transform input to internal format
+      const amount = {
+        assetId,
+        amount: input.amount,
+      };
+
       yield* _(
         Effect.tryPromise({
           try: () =>
             this.db.insert(checkoutSessions).values({
               id: sessionId,
               merchantId,
-              amountAssetId: input.amount.assetId,
-              amountValue: input.amount.amount,
+              amountAssetId: amount.assetId,
+              amountValue: amount.amount,
               recipientAddress: input.recipient.address,
               themeJson,
               successUrl: input.successUrl,
@@ -72,7 +82,7 @@ export class CheckoutService {
         sessionId,
         status: 'CREATED',
         paymentId: null,
-        amount: input.amount,
+        amount,
         recipient: input.recipient,
         theme: input.theme,
         successUrl: input.successUrl ?? undefined,

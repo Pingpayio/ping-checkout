@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 interface PaymentButtonProps {
   paymentData: PreparePaymentOutput;
-  selectedPaymentAsset: { assetId: string; amount: string };
+  selectedPaymentAsset: { amount: string; asset: { chain: string; symbol: string } };
   onSuccess?: () => void;
   onError?: (error: Error) => void;
 }
@@ -41,9 +41,13 @@ export function PaymentButton({ paymentData, selectedPaymentAsset, onSuccess, on
         throw new Error('NEAR wallet not connected');
       }
 
+      // Get assetId from paymentData (it's been resolved by the backend)
+      const assetId = paymentData.payment?.request?.asset?.assetId;
+      
       // Determine if this is a native NEAR transfer or NEP-141 token transfer
-      const isNativeNear = selectedPaymentAsset.assetId === 'nep141:wrap.near' ||
-                           selectedPaymentAsset.assetId.toLowerCase().includes('wrap.near');
+      const isNativeNear = selectedPaymentAsset.asset.symbol === 'NEAR' ||
+                           selectedPaymentAsset.asset.symbol === 'WRAP' ||
+                           (assetId && (assetId === 'nep141:wrap.near' || assetId.toLowerCase().includes('wrap.near')));
 
       if (isNativeNear) {
         // Native NEAR transfer
@@ -70,8 +74,14 @@ export function PaymentButton({ paymentData, selectedPaymentAsset, onSuccess, on
           .send({ waitUntil: 'FINAL' });
       } else {
         // NEP-141 token transfer (USDC, etc.)
+        // Get assetId from paymentData (it's been resolved by the backend)
+        const assetId = paymentData.payment?.request?.asset?.assetId;
+        if (!assetId) {
+          throw new Error('Asset ID not found in payment data');
+        }
+        
         // Extract contract address from assetId (format: "nep141:CONTRACT_ADDRESS")
-        const contractAddress = selectedPaymentAsset.assetId.replace(/^nep141:/, '');
+        const contractAddress = assetId.replace(/^nep141:/, '');
 
         // amountIn is already in the token's base units (e.g., 6 decimals for USDC)
         // Use ft_transfer_call to send tokens to the deposit address

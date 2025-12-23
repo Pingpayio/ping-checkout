@@ -41,7 +41,7 @@ function CheckoutRoute() {
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card' | 'deposit' | null>(null);
 
   // Payment asset selection (user chooses what to pay with)
-  const [selectedPaymentAsset, setSelectedPaymentAsset] = useState<{ assetId: string; amount: string } | null>(null);
+  const [selectedPaymentAsset, setSelectedPaymentAsset] = useState<{ amount: string; asset: { chain: string; symbol: string } } | null>(null);
 
   // Pre-connection asset selection (before wallet is connected)
   const [preConnectionAssetId, setPreConnectionAssetId] = useState<string>('nep141:wrap.near');
@@ -49,12 +49,15 @@ function CheckoutRoute() {
   // Auto-select pre-connection asset when wallet connects
   useEffect(() => {
     if (isConnected && paymentMethod === 'wallet' && !selectedPaymentAsset) {
-      setSelectedPaymentAsset({ assetId: preConnectionAssetId, amount: '0' });
+      setSelectedPaymentAsset({ 
+        amount: '0',
+        asset: { chain: 'NEAR', symbol: 'USDC' }
+      });
     }
   }, [isConnected, paymentMethod, selectedPaymentAsset, preConnectionAssetId]);
 
   // Track which payment attempts we've made to prevent infinite loops
-  // Key: `${sessionId}_${accountId}_${assetId}`
+  // Key: `${sessionId}_${accountId}_${chain}_${symbol}`
   const attemptedPayments = useRef<Set<string>>(new Set());
 
   // Auth handlers
@@ -155,15 +158,14 @@ function CheckoutRoute() {
       !paymentData &&
       !preparePayment.isPending
     ) {
-      const attemptKey = `${sessionIdForPayment}_${accountId}_${selectedAssetId}`;
+      const attemptKey = `${sessionIdForPayment}_${accountId}_${selectedPaymentAsset.asset.chain}_${selectedPaymentAsset.asset.symbol}`;
       if (attemptedPayments.current.has(attemptKey)) {
         return;
       }
 
       attemptedPayments.current.add(attemptKey);
       const session = sessionData.session;
-      const payerAsset = { assetId: selectedAssetId, amount: selectedAssetAmount || '0' };
-      const idempotencyKey = `checkout_${session.sessionId}_${accountId}_${selectedAssetId}_${Date.now()}`;
+      const idempotencyKey = `checkout_${session.sessionId}_${accountId}_${selectedPaymentAsset.asset.chain}_${selectedPaymentAsset.asset.symbol}_${Date.now()}`;
       console.log('[checkout] preparing payment', {
         sessionId: session.sessionId,
         payer: accountId,
@@ -180,7 +182,6 @@ function CheckoutRoute() {
             payerAsset,
             payer: {
               address: accountId,
-              chainId: 'near:mainnet',
             },
             idempotencyKey,
           },
@@ -195,7 +196,7 @@ function CheckoutRoute() {
         }
       );
     }
-  }, [isConnected, accountId, sessionIdForPayment, selectedAssetId, selectedAssetAmount, paymentData, preparePayment.isPending]);
+  }, [isConnected, accountId, sessionIdForPayment, selectedPaymentAsset?.asset?.chain, selectedPaymentAsset?.asset?.symbol, paymentData, preparePayment.isPending]);
 
   if (sessionLoading) {
     return (
@@ -270,8 +271,8 @@ function CheckoutRoute() {
     });
   };
 
-  const handleAssetChange = (assetId: string) => {
-    setSelectedPaymentAsset({ assetId, amount: '0' });
+  const handleAssetChange = (chain: string, symbol: string) => {
+    setSelectedPaymentAsset({ amount: '0', asset: { chain, symbol } });
     setPaymentData(null);
     // Clear attempted payments when switching assets to allow re-preparation
     attemptedPayments.current.clear();

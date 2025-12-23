@@ -26,11 +26,11 @@ const formatCryptoAmount = (amount: string | number): string => {
 interface PaymentAssetSelectionProps {
   amount: string;
   assetId: string;
-  selectedPaymentAsset: { assetId: string; amount: string } | null;
+  selectedPaymentAsset: { amount: string; asset: { chain: string; symbol: string } } | null;
   paymentData: any;
   accountId?: string | null;
   onBack: () => void;
-  onAssetChange: (assetId: string) => void;
+  onAssetChange: (chain: string, symbol: string) => void;
   onPaymentSuccess: () => void;
 }
 
@@ -130,9 +130,9 @@ export const PaymentAssetSelection = ({
               <span className="text-xl font-normal" style={{ color: 'var(--font-primary)' }}>
                 {formatCryptoAmount(
                   paymentData.quote?.amountInFormatted ||
-                  formatAssetAmount(paymentData.payment.request.asset.amount, selectedPaymentAsset?.assetId || '')
+                  formatAssetAmount(paymentData.payment.request.asset.amount, paymentData.payment.request.asset.assetId || '')
                 )}{' '}
-                {selectedPaymentAsset && getAssetSymbol(selectedPaymentAsset.assetId)}
+                {selectedPaymentAsset?.asset.symbol}
               </span>
             )}
 
@@ -182,7 +182,7 @@ export const PaymentAssetSelection = ({
                     <span className="font-normal" style={{ color: 'var(--font-primary)' }}>
                       1 {getAssetSymbol(assetId)} ≈ {
                         (parseFloat(paymentData.quote.amountInFormatted) / parseFloat(formatAssetAmount(amount, assetId))).toFixed(4)
-                      } {getAssetSymbol(selectedPaymentAsset.assetId)}
+                      } {selectedPaymentAsset.asset.symbol}
                     </span>
                   </div>
                 )}

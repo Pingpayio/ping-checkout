@@ -5,12 +5,14 @@ export type PreparePaymentInput = {
   input: {
     sessionId: string;
     payerAsset: {
-      assetId: string;
       amount: string;
+      asset: {
+        chain: string;
+        symbol: string;
+      };
     };
     payer: {
       address: string;
-      chainId: string;
     };
     idempotencyKey: string;
   };

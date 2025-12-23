@@ -16,8 +16,12 @@ export const ThemeSchema = z.object({
 });
 
 export const CreateCheckoutSessionInputSchema = z.object({
-  amount: AssetAmountSchema,
+  amount: z.string().regex(/^\d+$/, 'Amount must be a string integer in smallest units'),
   recipient: PartySchema,
+  asset: z.object({
+    chain: z.string(),
+    symbol: z.string(),
+  }),
   theme: ThemeSchema.optional(),
   successUrl: z.string().url().optional(),
   cancelUrl: z.string().url().optional(),
@@ -61,7 +65,13 @@ export const PaymentRequestSchema = z.object({
 
 export const PreparePaymentInputSchema = z.object({
   sessionId: z.string(),
-  payerAsset: AssetAmountSchema, // User-selected payment asset (source)
+  payerAsset: z.object({
+    amount: z.string().regex(/^\d+$/, 'Amount must be a string integer in smallest units'),
+    asset: z.object({
+      chain: z.string(),
+      symbol: z.string(),
+    }),
+  }), // User-selected payment asset (source) with chain and symbol
   payer: PartySchema, // User's address and chain
   idempotencyKey: z.string(),
 });

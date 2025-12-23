@@ -14,6 +14,7 @@ import type {
 } from '../schema';
 import { CheckoutService, CheckoutSessionNotFoundError } from './checkout';
 import { randomBytes } from 'crypto';
+import { resolveAssetId } from './oneclick-tokens';
 
 export class PaymentNotFoundError extends Error {
   readonly _tag = 'PaymentNotFoundError';
@@ -391,22 +392,34 @@ export class PaymentsService {
     checkoutService: CheckoutService
   ): Effect.Effect<PreparePaymentResponse, CheckoutSessionNotFoundError | Error> {
     return Effect.gen(this, function* (_) {
+      // Resolve assetId from chain and symbol
+      const assetId = yield* _(resolveAssetId(
+        input.payerAsset.asset.symbol,
+        input.payerAsset.asset.chain
+      ));
+
       const sessionResult = yield* _(
         checkoutService.getSession(merchantId, { sessionId: input.sessionId })
       );
       const session = sessionResult.session;
 
+      // Transform input to internal format
+      const payerAsset = {
+        assetId,
+        amount: input.payerAsset.amount,
+      };
+
       const paymentRequest: PaymentRequest = {
         payer: input.payer,
         recipient: session.recipient,
-        asset: input.payerAsset,
+        asset: payerAsset,
         idempotencyKey: input.idempotencyKey,
       };
 
       return yield* _(this.preparePaymentWithQuote(
         merchantId,
         paymentRequest,
-        input.payerAsset,
+        payerAsset,
         session.amount,
         session.recipient
       ));
