@@ -1,3 +1,6 @@
+import NearIcon from '@/assets/icons/Near.png';
+import UsdcIcon from '@/assets/icons/usdc.png';
+
 /**
  * Format asset amount with proper decimals
  * USDC: 6 decimals (1 USDC = 1000000)
@@ -44,12 +47,37 @@ export function getAssetSymbol(assetId: string): string {
   if (ASSET_ID_TO_NAME[assetId]) {
     return ASSET_ID_TO_NAME[assetId];
   }
-  
+
   // Fallback to pattern matching
   const asset = assetId.replace(/^nep141:/, '').toLowerCase();
   if (asset.includes('usdc')) return 'USDC';
   if (asset.includes('usdt')) return 'USDT';
   if (asset.includes('wrap.near') || asset.includes('near')) return 'NEAR';
   return asset.toUpperCase();
+}
+
+/**
+ * Asset symbol to icon path mapping
+ */
+const ASSET_SYMBOL_TO_ICON: Record<string, string> = {
+  'NEAR': NearIcon,
+  'USDC': UsdcIcon,
+};
+
+/**
+ * Get asset icon URL or null if no icon available
+ * Returns local icon paths for NEAR and USDC, null for others
+ */
+export function getAssetIcon(assetId: string): string | null {
+  const symbol = ASSET_ID_TO_NAME[assetId];
+  console.log(symbol);
+  
+  if (symbol && ASSET_SYMBOL_TO_ICON[symbol]) {
+    return ASSET_SYMBOL_TO_ICON[symbol];
+  }
+
+  // Fallback to pattern matching using getAssetSymbol
+  const fallbackSymbol = getAssetSymbol(assetId);
+  return ASSET_SYMBOL_TO_ICON[fallbackSymbol] || null;
 }
 

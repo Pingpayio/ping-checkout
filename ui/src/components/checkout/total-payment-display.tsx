@@ -1,5 +1,4 @@
-import { formatAssetAmount, getAssetSymbol } from '@/utils/format';
-import NearIcon from '@/assets/icons/Near.png';
+import { formatAssetAmount, getAssetSymbol, getAssetIcon } from '@/utils/format';
 
 interface TotalPaymentDisplayProps {
   amount: string;
@@ -17,19 +16,25 @@ export const TotalPaymentDisplay = ({
   const isLarge = variant === 'large';
   const symbol = getAssetSymbol(assetId);
   const formattedAmount = formatAssetAmount(amount, assetId);
-
-  // Only show NEAR icon if the asset is actually NEAR
-  const isNear = symbol === 'NEAR';
-
+  const assetIcon = getAssetIcon(assetId);
+  console.log(assetIcon);
+  
   return (
-    <div className="p-[13px] bg-muted/20 rounded-lg border border-border">
+    <div
+      className="p-[13px]"
+      style={{
+        backgroundColor: 'var(--elevation-2-fill)',
+        border: '1px solid var(--elevation-2-stroke)',
+        borderRadius: 'var(--radius-button)'
+      }}
+    >
       <div className="flex items-center justify-between">
-        <span className={`${isLarge ? 'text-lg' : 'text-base'} font-normal text-foreground`}>
+        <span className={`${isLarge ? 'text-lg' : 'text-base'} font-normal`} style={{ color: 'var(--font-primary)' }}>
           Total Payment:
         </span>
         <div className="flex items-center gap-2">
-          {showIcon && isNear && <img src={NearIcon} alt="NEAR" className="w-6 h-6" />}
-          <span className={`${isLarge ? 'text-xl' : 'text-lg'} font-normal text-foreground`}>
+          {showIcon && assetIcon && <img src={assetIcon} alt={symbol} className="w-6 h-6" />}
+          <span className={`${isLarge ? 'text-xl' : 'text-lg'} font-normal`} style={{ color: 'var(--font-primary)' }}>
             {formattedAmount}{' '}
             {symbol}
           </span>

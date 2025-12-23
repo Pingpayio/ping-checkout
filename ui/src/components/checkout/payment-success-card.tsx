@@ -15,22 +15,19 @@ interface PaymentSuccessCardProps {
 }
 
 const CheckmarkIcon = () => (
-  <div className="relative w-[80px] h-[80px] flex items-center justify-center">
-    {/* Outer ring */}
-    <div className="absolute inset-0 rounded-full bg-[#584b7d]">
-      {/* Inner circle */}
-      <div className="absolute inset-[14px] rounded-full bg-[#4a3d6a] flex items-center justify-center">
-        {/* Checkmark */}
-        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M12 20L18 26L28 14"
-            stroke="#a89bc5"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
+  <div className="relative w-[100px] h-[100px] flex items-center justify-center">
+    {/* Background circle */}
+    <div className="absolute inset-0 rounded-full" style={{ backgroundColor: '#5A5474' }}>
+      {/* Checkmark */}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M30 50L45 65L70 40"
+          stroke="#AF9EF9"
+          strokeWidth="5.33"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </div>
   </div>
 );
@@ -81,12 +78,21 @@ export const PaymentSuccessCard = ({
   }).replace(',', ' -');
 
   return (
-    <div className="flex flex-col gap-6 p-[25px] bg-card rounded-xl border border-border max-w-[500px] w-full relative">
+    <div
+      className="flex flex-col gap-6 max-w-[500px] w-full relative"
+      style={{
+        padding: 'var(--widget-padding)',
+        backgroundColor: 'var(--widget-fill)',
+        border: '1px solid var(--widget-stroke)',
+        borderRadius: 'var(--radius-widget)',
+      }}
+    >
       {/* Close Button */}
       {onClose && (
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-[#a3a3a3] hover:text-foreground transition-colors"
+          className="absolute top-4 right-4 transition-colors"
+          style={{ color: 'var(--font-secondary)' }}
           aria-label="Close"
         >
           <CloseIcon />
@@ -100,41 +106,49 @@ export const PaymentSuccessCard = ({
 
       {/* Header */}
       <div className="flex flex-col items-center gap-2">
-        <h1 className="text-2xl font-normal text-foreground leading-tight">
+        <h1 className="text-2xl font-semibold leading-tight" style={{ color: 'var(--font-primary)' }}>
           Payment Successful!
         </h1>
       </div>
 
       {/* Payment Details Section */}
-      <div className="flex flex-col gap-3 p-4 bg-[#1a1a1a] rounded-xl border border-border">
-        <h2 className="text-base font-normal text-foreground">Payment Details</h2>
+      <div
+        className="flex flex-col gap-3 p-4"
+        style={{
+          backgroundColor: 'var(--elevation-1-fill)',
+          border: '1px solid var(--elevation-1-stroke)',
+          borderRadius: 'var(--radius-button)'
+        }}
+      >
+        <h2 className="text-base font-medium text-center" style={{ color: 'var(--font-primary)' }}>Payment Details</h2>
 
         {/* Payment Amount */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Payment Amount</span>
-          <span className="text-sm font-normal text-foreground">{paymentAmount}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Payment Amount</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{paymentAmount} {asset}</span>
         </div>
 
         {/* Asset */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Asset</span>
-          <span className="text-sm font-normal text-foreground">{asset}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Asset</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{asset}</span>
         </div>
 
         {/* Network */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Network</span>
-          <span className="text-sm font-normal text-foreground">{network}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Network</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{network}</span>
         </div>
 
         {/* Recipient Address */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Recipient Address</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Recipient Address</span>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-normal text-foreground font-mono">{displayAddress}</span>
+            <span className="text-sm font-normal font-mono" style={{ color: 'var(--font-primary)' }}>{displayAddress}</span>
             <button
               onClick={handleCopyAddress}
-              className="text-[#a3a3a3] hover:text-foreground transition-colors"
+              className="transition-colors"
+              style={{ color: 'var(--font-secondary)' }}
               aria-label="Copy address"
             >
               <CopyIcon />
@@ -144,38 +158,38 @@ export const PaymentSuccessCard = ({
 
         {/* Pricing Rate */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Pricing Rate</span>
-          <span className="text-sm font-normal text-foreground">{pricingRate}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Pricing Rate</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{pricingRate}</span>
         </div>
 
         {/* Network Fee */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Network Fee</span>
-          <span className="text-sm font-normal text-foreground">{networkFee}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Network Fee</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{networkFee}</span>
         </div>
 
         {/* Pingpay Fee */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Pingpay Fee</span>
-          <span className="text-sm font-normal text-foreground">{pingpayFee}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Pingpay Fee</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{pingpayFee}</span>
         </div>
 
         {/* Total Fee */}
-        <div className="flex items-center justify-between pt-2 border-t border-border">
-          <span className="text-sm font-medium text-foreground">Total Fee</span>
-          <span className="text-sm font-medium text-foreground">{totalFee}</span>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>Total Fee</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{totalFee}</span>
         </div>
 
         {/* Status */}
-        <div className="flex items-center justify-between pt-2 border-t border-border">
-          <span className="text-sm font-normal text-[#a3a3a3]">Status</span>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Status</span>
           <span className="text-sm font-medium text-green-500">Confirmed</span>
         </div>
 
         {/* Date */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Date</span>
-          <span className="text-sm font-normal text-foreground">{displayDate}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Date</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{displayDate}</span>
         </div>
       </div>
 
@@ -183,12 +197,14 @@ export const PaymentSuccessCard = ({
       {onViewExplorer && (
         <button
           onClick={onViewExplorer}
-          className="flex h-[58px] w-full items-center justify-center gap-2 px-4 py-2 rounded-lg transition-all duration-200"
+          className="flex h-[58px] w-full items-center justify-center gap-2 px-4 py-2 transition-all duration-200"
           style={{
-            background: 'linear-gradient(97.34deg, #AF9EF9 0%, #C4A7FF 100%)'
+            background: 'linear-gradient(97.34deg, #AF9EF9 0%, #C4A7FF 100%)',
+            borderRadius: 'var(--radius-button)',
+            color: 'var(--font-purple-button)'
           }}
         >
-          <span className="text-base font-normal text-[#3d315e]">
+          <span className="text-base font-normal">
             View on Explorer
           </span>
         </button>

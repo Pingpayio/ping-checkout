@@ -72,7 +72,7 @@ function ProcessingRoute() {
   // Show success state
   if (status === 'SUCCESS') {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background p-4">
+      <div className="flex items-center justify-center min-h-screen p-4" style={{ backgroundColor: 'var(--widget-fill)' }}>
         <PaymentSuccessCard
           paymentAmount={paymentAmount || '0 USDC'}
           asset={asset || 'USDC'}
@@ -93,7 +93,7 @@ function ProcessingRoute() {
   // Show failed state
   if (status === 'FAILED' || status === 'REFUNDED') {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background p-4">
+      <div className="flex items-center justify-center min-h-screen p-4" style={{ backgroundColor: 'var(--widget-fill)' }}>
         <PaymentFailedCard
           paymentAmount={paymentAmount || '0 USDC'}
           asset={asset || 'USDC'}
@@ -114,7 +114,7 @@ function ProcessingRoute() {
 
   // Show processing state with PaymentStatusCard
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
+    <div className="flex items-center justify-center min-h-screen p-4" style={{ backgroundColor: 'var(--widget-fill)' }}>
       <PaymentStatusCard
         paymentAmount={paymentAmount || '0 USDC'}
         asset={asset || 'USDC'}

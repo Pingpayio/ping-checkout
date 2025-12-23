@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useGetUserTokens, useGetNativeNearBalance } from '@/integrations/api/tokens';
+import NearIcon from '@/assets/icons/Near.png';
 
 export interface ProcessedToken {
   accountId: string;
@@ -69,6 +70,34 @@ export function useUserTokens(accountId: string | undefined) {
   const processedTokens = useMemo(() => {
     const tokens: ProcessedToken[] = [];
 
+    // If no accountId, return default tokens without balances
+    if (!accountId) {
+      return [
+        {
+          accountId: 'NATIVE',
+          symbol: 'NEAR',
+          name: 'NEAR',
+          icon: NearIcon,
+          balance: '0',
+          balanceFormatted: '0',
+          balanceUsd: '0.00',
+          decimals: 24,
+          priceUsd: '0',
+        },
+        {
+          accountId: '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1',
+          symbol: 'USDC',
+          name: 'USD Coin',
+          icon: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png',
+          balance: '0',
+          balanceFormatted: '0',
+          balanceUsd: '0.00',
+          decimals: 6,
+          priceUsd: '0',
+        },
+      ];
+    }
+
     // Add native NEAR as the first token if we have a balance
     if (nativeNearBalance) {
       const balance = parseFloat(nativeNearBalance);
@@ -84,7 +113,7 @@ export function useUserTokens(accountId: string | undefined) {
           accountId: 'NATIVE', // Special identifier for native NEAR
           symbol: 'NEAR',
           name: 'NEAR',
-          icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/6535.png',
+          icon: NearIcon,
           balance: nativeNearBalance,
           balanceFormatted,
           balanceUsd,
@@ -124,7 +153,7 @@ export function useUserTokens(accountId: string | undefined) {
 
     // Sort with NEAR first, then USDC, then alphabetically
     return sortTokens(tokens);
-  }, [data, nativeNearBalance]);
+  }, [data, nativeNearBalance, accountId]);
 
   return {
     tokens: processedTokens,

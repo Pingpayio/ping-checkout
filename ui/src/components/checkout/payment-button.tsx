@@ -113,12 +113,22 @@ export function PaymentButton({ paymentData, selectedPaymentAsset, onSuccess, on
     <button
       onClick={handlePayment}
       disabled={!accountId || isProcessing || !paymentData.depositAddress}
-      className="flex h-[58px] w-full items-center justify-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       style={{
-        background: 'linear-gradient(97.34deg, #AF9EF9 0%, #C4A7FF 100%)'
+        width: '450px',
+        height: '58px',
+        borderRadius: '8px',
+        paddingTop: '8px',
+        paddingRight: '16px',
+        paddingBottom: '8px',
+        paddingLeft: '16px',
+        gap: '8px',
+        backgroundColor: 'var(--brand-purple)',
+        color: 'var(--font-purple-button)',
+        opacity: 1
       }}
     >
-      <span className="text-base font-normal text-[#3d315e]">
+      <span className="text-base font-normal">
         {isProcessing ? 'Processing...' : 'PAY'}
       </span>
     </button>

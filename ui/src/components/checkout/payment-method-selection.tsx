@@ -15,45 +15,77 @@ export const PaymentMethodSelection = ({
   onSelectMethod
 }: PaymentMethodSelectionProps) => {
   return (
-    <div className="flex flex-col gap-[21px] p-[25px] bg-card rounded-xl border border-border">
+    <div
+      className="flex flex-col gap-[21px]"
+      style={{
+        padding: 'var(--widget-padding)',
+        backgroundColor: 'var(--widget-fill)',
+        border: '1px solid var(--widget-stroke)',
+        borderRadius: 'var(--radius-widget)',
+        width: '500px',
+        minHeight: '344px'
+      }}
+    >
       {/* Header */}
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-normal text-foreground">Payment</h1>
+        <h1 className="text-2xl font-normal" style={{ color: 'var(--font-primary)' }}>Payment</h1>
 
         {/* Total Payment Section */}
-        <TotalPaymentDisplay amount={amount} assetId={assetId} variant="large" />
+        <TotalPaymentDisplay amount={amount} assetId={assetId} showIcon={true} variant="large" />
       </div>
 
       {/* Payment Method Buttons */}
       <div className="flex flex-col gap-3">
         <button
           onClick={() => onSelectMethod('wallet')}
-          className="flex h-[58px] items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-b from-[#af9ef9] to-[#c4a7ff] hover:from-[#9f8ef9] hover:to-[#b497ff] transition-all duration-200"
+          className="flex h-[58px] items-center justify-center transition-all duration-200"
+          style={{
+            borderRadius: '8px',
+            backgroundColor: 'var(--brand-purple)',
+            color: 'var(--font-purple-button)',
+            paddingTop: '8px',
+            paddingRight: '16px',
+            paddingBottom: '8px',
+            paddingLeft: '16px',
+            gap: '8px'
+          }}
         >
           <WalletIcon />
-          <span className="text-base font-normal text-[#3d315e]">Pay with Wallet</span>
+          <span className="text-base font-normal">Pay with Wallet</span>
         </button>
 
-        <div className="flex items-start gap-3">
+        <div className="flex gap-3">
           <button
             onClick={() => {
               onSelectMethod('card');
               toast.info('Card payment coming soon!');
             }}
-            className="flex flex-1 h-10 items-center justify-center gap-2 px-[17px] py-[9px] bg-[#131313eb] rounded-lg border border-border hover:bg-[#1a1a1aeb] transition-all duration-200"
+            className="flex flex-1 h-10 items-center justify-center gap-2 px-[17px] py-[9px] transition-all duration-200"
+            style={{
+              borderRadius: 'var(--radius-button)',
+              backgroundColor: 'var(--elevation-1-fill)',
+              border: '1px solid var(--elevation-1-stroke)',
+              color: 'var(--font-secondary)'
+            }}
           >
             <CardIcon />
-            <span className="text-sm font-normal text-[#ffffffb9]">Pay with Card</span>
+            <span className="text-sm font-normal">Pay with Card</span>
           </button>
           <button
             onClick={() => {
               onSelectMethod('deposit');
               toast.info('Deposit payment coming soon!');
             }}
-            className="flex h-10 items-center justify-center gap-2 px-[17px] py-[9px] bg-[#131313eb] rounded-lg border border-border hover:bg-[#1a1a1aeb] transition-all duration-200"
+            className="flex flex-1 h-10 items-center justify-center gap-2 px-[17px] py-[9px] transition-all duration-200"
+            style={{
+              borderRadius: 'var(--radius-button)',
+              backgroundColor: 'var(--elevation-1-fill)',
+              border: '1px solid var(--elevation-1-stroke)',
+              color: 'var(--font-secondary)'
+            }}
           >
             <DepositIcon />
-            <span className="text-sm font-normal text-[#ffffffb9]">Pay with Deposit</span>
+            <span className="text-sm font-normal">Pay with Deposit</span>
           </button>
         </div>
       </div>

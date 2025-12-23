@@ -1,8 +1,15 @@
 export const DeFiPaymentInfo = () => (
-  <div className="p-4 rounded-lg" style={{ background: '#AB9FF273', border: '1px solid #AB9FF280' }}>
-    <p className="text-sm text-muted-foreground text-center">
+  <div
+    className="p-4"
+    style={{
+      backgroundColor: 'rgba(171, 159, 242, 0.45)',
+      border: '1px solid rgba(175, 158, 249, 0.3)',
+      borderRadius: 'var(--radius-button)'
+    }}
+  >
+    <p className="text-sm text-center" style={{ color: '#DDCEFF' }}>
       This is a DeFi payment which can't be reversed.{' '}
-      <a href="#" className="text-foreground underline hover:no-underline">
+      <a href="#" className="underline hover:no-underline" style={{ color: '#DDCEFF' }}>
         Learn More
       </a>
     </p>

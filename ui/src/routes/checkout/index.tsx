@@ -43,12 +43,15 @@ function CheckoutRoute() {
   // Payment asset selection (user chooses what to pay with)
   const [selectedPaymentAsset, setSelectedPaymentAsset] = useState<{ assetId: string; amount: string } | null>(null);
 
-  // Auto-select USDC when wallet connects
+  // Pre-connection asset selection (before wallet is connected)
+  const [preConnectionAssetId, setPreConnectionAssetId] = useState<string>('nep141:wrap.near');
+
+  // Auto-select pre-connection asset when wallet connects
   useEffect(() => {
     if (isConnected && paymentMethod === 'wallet' && !selectedPaymentAsset) {
-      setSelectedPaymentAsset({ assetId: 'nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1', amount: '0' });
+      setSelectedPaymentAsset({ assetId: preConnectionAssetId, amount: '0' });
     }
-  }, [isConnected, paymentMethod, selectedPaymentAsset]);
+  }, [isConnected, paymentMethod, selectedPaymentAsset, preConnectionAssetId]);
 
   // Track which payment attempts we've made to prevent infinite loops
   // Key: `${sessionId}_${accountId}_${assetId}`
@@ -219,6 +222,8 @@ function CheckoutRoute() {
 
   const session = sessionData.session;
 
+  console.log('[CheckoutRoute] Session data:', session);
+
   const handlePaymentSuccess = () => {
     if (!paymentData?.depositAddress) {
       toast.error('Deposit address not available');
@@ -273,9 +278,9 @@ function CheckoutRoute() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--widget-fill)' }}>
       {/* DEV: Logout Button */}
-      {/* {isConnected && (
+      {isConnected && (
         <div className="fixed top-4 right-4 z-50">
           <button
             onClick={handleLogout}
@@ -284,7 +289,7 @@ function CheckoutRoute() {
             logout ({accountId})
           </button>
         </div>
-      )} */}
+      )}
 
       <div className="w-full max-w-[500px]">
         {/* Step 1: Payment Method Selection */}
@@ -304,9 +309,11 @@ function CheckoutRoute() {
             accountId={accountId}
             isConnectingWallet={isConnectingWallet}
             isSigningInWithNear={isSigningInWithNear}
+            selectedPaymentAssetId={preConnectionAssetId}
             onConnect={handleWalletConnect}
             onSignIn={handleNearSignIn}
             onBack={() => setPaymentMethod(null)}
+            onAssetChange={setPreConnectionAssetId}
           />
         )}
 

@@ -12,32 +12,30 @@ interface PaymentStatusCardProps {
 }
 
 const LoadingSpinner = () => (
-  <div className="relative w-[80px] h-[80px] flex items-center justify-center">
-    {/* Outer ring */}
-    <div className="absolute inset-0 rounded-full bg-[#584b7d]">
+  <div className="relative w-[100px] h-[100px] flex items-center justify-center">
+    {/* Background circle */}
+    <div className="absolute inset-0 rounded-full" style={{ backgroundColor: '#5A5474' }}>
+      {/* Inner static circle */}
+      <div className="absolute inset-[20px] rounded-full border-[3px]" style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }} />
       {/* Spinning gradient arc */}
       <svg className="absolute inset-0 w-full h-full animate-spin" style={{ animationDuration: '1.5s' }}>
         <circle
-          cx="40"
-          cy="40"
-          r="36"
+          cx="50"
+          cy="50"
+          r="30"
           fill="none"
           stroke="url(#spinner-gradient)"
-          strokeWidth="8"
+          strokeWidth="3"
           strokeLinecap="round"
-          strokeDasharray="120 120"
+          strokeDasharray="40 150"
         />
         <defs>
-          <linearGradient id="spinner-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#a89bc5" />
-            <stop offset="100%" stopColor="#7b6ba3" />
-          </linearGradient>
+          <radialGradient id="spinner-gradient" cx="50%" cy="0%" r="50%">
+            <stop offset="0%" stopColor="#AB9FF2" />
+            <stop offset="100%" stopColor="rgba(255, 255, 255, 0.2)" />
+          </radialGradient>
         </defs>
       </svg>
-    </div>
-    {/* Inner circle */}
-    <div className="relative w-[52px] h-[52px] rounded-full bg-[#4a3d6a] flex items-center justify-center">
-      <div className="w-[40px] h-[40px] rounded-full border-[2px] border-[#7b6ba3]" />
     </div>
   </div>
 );
@@ -76,7 +74,16 @@ export const PaymentStatusCard = ({
     : recipientAddress;
 
   return (
-    <div className="flex flex-col gap-6 p-[25px] bg-card rounded-xl border border-border max-w-[500px] w-full">
+    <div
+      className="flex flex-col gap-6 max-w-[500px] w-full"
+      style={{
+        padding: 'var(--widget-padding)',
+        backgroundColor: 'var(--widget-fill)',
+        border: '1px solid var(--widget-stroke)',
+        borderRadius: 'var(--radius-widget)',
+        minHeight: '700px'
+      }}
+    >
       {/* Spinner */}
       <div className="flex items-center justify-center pt-4">
         <LoadingSpinner />
@@ -84,44 +91,52 @@ export const PaymentStatusCard = ({
 
       {/* Header */}
       <div className="flex flex-col items-center gap-2">
-        <h1 className="text-2xl font-normal text-foreground leading-tight">
+        <h1 className="text-2xl font-semibold leading-tight" style={{ color: 'var(--font-primary)' }}>
           Processing Your Payment
         </h1>
-        <p className="text-sm font-normal text-[#a3a3a3]">
+        <p className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>
           Your transaction is being confirmed.
         </p>
       </div>
 
       {/* Payment Details Section */}
-      <div className="flex flex-col gap-3 p-4 bg-[#1a1a1a] rounded-xl border border-border">
-        <h2 className="text-base font-normal text-foreground">Payment Details</h2>
+      <div
+        className="flex flex-col gap-3 p-4"
+        style={{
+          backgroundColor: 'var(--elevation-1-fill)',
+          border: '1px solid var(--elevation-1-stroke)',
+          borderRadius: 'var(--radius-button)'
+        }}
+      >
+        <h2 className="text-base font-medium text-center" style={{ color: 'var(--font-primary)' }}>Payment Details</h2>
 
         {/* Payment Amount */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Payment Amount</span>
-          <span className="text-sm font-normal text-foreground">{paymentAmount}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Payment Amount</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{paymentAmount} {asset}</span>
         </div>
 
         {/* Asset */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Asset</span>
-          <span className="text-sm font-normal text-foreground">{asset}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Asset</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{asset}</span>
         </div>
 
         {/* Network */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Network</span>
-          <span className="text-sm font-normal text-foreground">{network}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Network</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{network}</span>
         </div>
 
         {/* Recipient Address */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Recipient Address</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Recipient Address</span>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-normal text-foreground font-mono">{displayAddress}</span>
+            <span className="text-sm font-normal font-mono" style={{ color: 'var(--font-primary)' }}>{displayAddress}</span>
             <button
               onClick={handleCopyAddress}
-              className="text-[#a3a3a3] hover:text-foreground transition-colors"
+              className="transition-colors"
+              style={{ color: 'var(--font-secondary)' }}
               aria-label="Copy address"
             >
               <CopyIcon />
@@ -131,37 +146,37 @@ export const PaymentStatusCard = ({
 
         {/* Pricing Rate */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Pricing Rate</span>
-          <span className="text-sm font-normal text-foreground">{pricingRate}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Pricing Rate</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{pricingRate}</span>
         </div>
 
         {/* Network Fee */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Network Fee</span>
-          <span className="text-sm font-normal text-foreground">{networkFee}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Network Fee</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{networkFee}</span>
         </div>
 
         {/* Pingpay Fee */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-normal text-[#a3a3a3]">Pingpay Fee</span>
-          <span className="text-sm font-normal text-foreground">{pingpayFee}</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Pingpay Fee</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{pingpayFee}</span>
         </div>
 
         {/* Total Fee */}
-        <div className="flex items-center justify-between pt-2 border-t border-border">
-          <span className="text-sm font-medium text-foreground">Total Fee</span>
-          <span className="text-sm font-medium text-foreground">{totalFee}</span>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>Total Fee</span>
+          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{totalFee}</span>
         </div>
       </div>
 
       {/* Time Notice */}
-      <div className="flex items-center justify-center gap-2 text-[#a3a3a3]">
+      <div className="flex items-center justify-center gap-2" style={{ color: 'var(--font-secondary)' }}>
         <ClockIcon />
         <span className="text-sm font-normal">This can take 0-3 minutes</span>
       </div>
 
       {/* Warning */}
-      <p className="text-center text-sm font-normal text-[#a3a3a3]">
+      <p className="text-center text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>
         Do not close this window, transaction is being processed.
       </p>
 

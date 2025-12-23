@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getAssetSymbol, formatAssetAmount } from '@/utils/format';
-import { ChevronDownIcon, CloseIcon } from './icons';
+import { ChevronDownIcon, CloseIcon, InfoIcon, ErrorIcon } from './icons';
 import { PoweredByPing } from './powered-by-ping';
 import { TotalPaymentDisplay } from './total-payment-display';
 import { DeFiPaymentInfo } from './defi-payment-info';
@@ -9,6 +9,7 @@ import { usePreparePayment } from '@/integrations/api/payments';
 import { AssetNetworkSelector } from './asset-network-selector';
 import { AssetSelectionModal } from './asset-selection-modal';
 import { useUserTokens, type ProcessedToken } from '@/hooks/use-user-tokens';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // Format crypto amount to max 8 decimal places, removing trailing zeros
 const formatCryptoAmount = (amount: string | number): string => {
@@ -68,13 +69,23 @@ export const PaymentAssetSelection = ({
   };
 
   return (
-    <div className="flex flex-col gap-[21px] p-[25px] bg-card rounded-xl border border-border">
+    <div
+      className="flex flex-col gap-[21px]"
+      style={{
+        padding: 'var(--widget-padding)',
+        backgroundColor: 'var(--widget-fill)',
+        border: '1px solid var(--widget-stroke)',
+        borderRadius: 'var(--radius-widget)',
+        width: '500px'
+      }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-normal text-foreground">Payment</h1>
+        <h1 className="text-2xl font-normal" style={{ color: 'var(--font-primary)' }}>Payment</h1>
         <button
           onClick={onBack}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="transition-colors"
+          style={{ color: 'var(--font-secondary)' }}
         >
           <CloseIcon />
         </button>
@@ -85,23 +96,33 @@ export const PaymentAssetSelection = ({
 
       {/* Pay With Section */}
       <div className="space-y-3">
-        <h2 className="text-base font-normal text-foreground">Pay With</h2>
+        <h2 className="text-base font-normal" style={{ color: 'var(--font-primary)' }}>Pay With</h2>
 
         {/* Payment Asset Selection */}
-        <div className="p-4 bg-background rounded-lg border border-border">
+        <div
+          className="p-4"
+          style={{
+            backgroundColor: 'var(--elevation-1-fill)',
+            border: '1px solid var(--elevation-1-stroke)',
+            borderRadius: 'var(--radius-button)'
+          }}
+        >
           <div className="flex items-center justify-between">
             {preparePayment.isPending || !paymentData ? (
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#5A5474] flex items-center justify-center">
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                <LoadingSpinner size={40} />
+                <span className="text-xs font-normal" style={{ color: '#FFFFFF99' }}>Getting Quote...</span>
+              </div>
+            ) : preparePayment.isError ? (
+              <div className="flex items-center gap-3">
+                <ErrorIcon />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-normal" style={{ color: '#FFFFFF99' }}>No Quote Found.</span>
+                  <InfoIcon />
                 </div>
-                <span className="text-base font-normal text-foreground">Getting Quote...</span>
               </div>
             ) : (
-              <span className="text-xl font-normal text-foreground">
+              <span className="text-xl font-normal" style={{ color: 'var(--font-primary)' }}>
                 {formatCryptoAmount(
                   paymentData.quote?.amountInFormatted ||
                   formatAssetAmount(paymentData.payment.request.asset.amount, selectedPaymentAsset?.assetId || '')
@@ -128,9 +149,9 @@ export const PaymentAssetSelection = ({
                 {/* Recipient Address */}
                 {paymentData.payment?.request?.recipient?.address && (
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Recipient Address</span>
+                    <span style={{ color: 'var(--font-secondary)' }}>Recipient Address</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-foreground font-normal font-mono text-xs">
+                      <span className="font-normal font-mono text-xs" style={{ color: 'var(--font-primary)' }}>
                         {paymentData.payment.request.recipient.address.length > 15
                           ? `${paymentData.payment.request.recipient.address.slice(0, 6)}...${paymentData.payment.request.recipient.address.slice(-5)}`
                           : paymentData.payment.request.recipient.address
@@ -138,7 +159,7 @@ export const PaymentAssetSelection = ({
                       </span>
                       <button
                         onClick={() => navigator.clipboard.writeText(paymentData.payment.request.recipient.address)}
-                        className="text-muted-foreground hover:text-foreground"
+                        style={{ color: 'var(--font-secondary)' }}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -152,8 +173,8 @@ export const PaymentAssetSelection = ({
                 {/* Pricing Rate */}
                 {selectedPaymentAsset && paymentData.quote?.amountInFormatted && (
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Pricing Rate</span>
-                    <span className="text-foreground font-normal">
+                    <span style={{ color: 'var(--font-secondary)' }}>Pricing Rate</span>
+                    <span className="font-normal" style={{ color: 'var(--font-primary)' }}>
                       1 {getAssetSymbol(assetId)} ≈ {
                         (parseFloat(paymentData.quote.amountInFormatted) / parseFloat(formatAssetAmount(amount, assetId))).toFixed(4)
                       } {getAssetSymbol(selectedPaymentAsset.assetId)}
@@ -163,22 +184,22 @@ export const PaymentAssetSelection = ({
 
                 {/* Max Slippage */}
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Max Slippage</span>
-                  <span className="text-foreground font-normal">1%</span>
+                  <span style={{ color: 'var(--font-secondary)' }}>Max Slippage</span>
+                  <span className="font-normal" style={{ color: 'var(--font-primary)' }}>1%</span>
                 </div>
 
                 {/* Route */}
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Route</span>
-                  <span className="text-foreground font-normal">via NEAR Intents</span>
+                  <span style={{ color: 'var(--font-secondary)' }}>Route</span>
+                  <span className="font-normal" style={{ color: 'var(--font-primary)' }}>via NEAR Intents</span>
                 </div>
 
                 {/* Horizontal separator before fees */}
-                <div className="border-t border-border pt-3 space-y-3">
+                <div className="border-t pt-3 space-y-3" style={{ borderColor: 'var(--widget-stroke)' }}>
                   {/* Network Fee */}
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Network Fee</span>
-                    <span className="text-foreground font-normal">
+                    <span style={{ color: 'var(--font-secondary)' }}>Network Fee</span>
+                    <span className="font-normal" style={{ color: 'var(--font-primary)' }}>
                       ${paymentData.payment?.feeQuote?.totalFee?.amount
                         ? formatAssetAmount(paymentData.payment.feeQuote.totalFee.amount, paymentData.payment.feeQuote.totalFee.assetId)
                         : '0.06'}
@@ -187,14 +208,14 @@ export const PaymentAssetSelection = ({
 
                   {/* Pingpay Fee */}
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Pingpay Fee</span>
-                    <span className="text-foreground font-normal">$0</span>
+                    <span style={{ color: 'var(--font-secondary)' }}>Pingpay Fee</span>
+                    <span className="font-normal" style={{ color: 'var(--font-primary)' }}>$0</span>
                   </div>
 
                   {/* Total Fee */}
                   <div className="flex items-center justify-between">
-                    <span className="text-foreground font-medium">Total Fee</span>
-                    <span className="text-foreground font-medium">
+                    <span className="font-medium" style={{ color: 'var(--font-primary)' }}>Total Fee</span>
+                    <span className="font-medium" style={{ color: 'var(--font-primary)' }}>
                       ${paymentData.payment?.feeQuote?.totalFee?.amount
                         ? formatAssetAmount(paymentData.payment.feeQuote.totalFee.amount, paymentData.payment.feeQuote.totalFee.assetId)
                         : '0.06'}
@@ -205,16 +226,21 @@ export const PaymentAssetSelection = ({
             )}
 
             {/* Transaction Details Toggle Button - Aligned to the right */}
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowTransactionDetails(!showTransactionDetails)}
-                className="flex items-center gap-2 text-sm text-[#a78bfa] hover:text-[#c4b5fd] transition-colors"
-              >
-                <span>Transaction Details</span>
-                <div className={`transform transition-transform ${showTransactionDetails ? 'rotate-180' : ''}`}>
-                  <ChevronDownIcon />
-                </div>
-              </button>
+            <div className="flex flex-col gap-3">
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowTransactionDetails(!showTransactionDetails)}
+                  className="flex items-center gap-2 text-sm transition-colors"
+                  style={{ color: 'var(--brand-purple)' }}
+                >
+                  <span>Transaction Details</span>
+                  <div className={`transform transition-transform ${showTransactionDetails ? 'rotate-180' : ''}`}>
+                    <ChevronDownIcon />
+                  </div>
+                </button>
+              </div>
+              {/* Horizontal line after Transaction Details */}
+              <div className="border-t" style={{ borderColor: 'var(--widget-stroke)' }} />
             </div>
           </>
         )}
@@ -227,30 +253,48 @@ export const PaymentAssetSelection = ({
           selectedPaymentAsset={selectedPaymentAsset}
           onSuccess={onPaymentSuccess}
         />
+      ) : preparePayment.isError ? (
+        <button
+          disabled
+          className="flex items-center justify-center gap-2 cursor-not-allowed transition-all duration-200"
+          style={{
+            width: '450px',
+            height: '58px',
+            borderRadius: '8px',
+            paddingTop: '8px',
+            paddingRight: '16px',
+            paddingBottom: '8px',
+            paddingLeft: '16px',
+            background: 'linear-gradient(97.34deg, rgba(175, 158, 249, 0.6) 0%, rgba(196, 167, 255, 0.6) 100%)',
+            opacity: 1,
+            color: 'var(--font-purple-button)'
+          }}
+        >
+          <span className="text-base font-normal">
+            No Liquidity for this Pair
+          </span>
+        </button>
       ) : (
         <button
           disabled
-          className="flex h-[58px] items-center justify-center gap-2 px-4 py-2 rounded-lg cursor-not-allowed transition-all duration-200"
+          className="flex items-center justify-center gap-2 cursor-not-allowed transition-all duration-200"
           style={{
-            background: 'linear-gradient(97.34deg, rgba(175, 158, 249, 0.6) 0%, rgba(196, 167, 255, 0.6) 100%)'
+            width: '450px',
+            height: '58px',
+            borderRadius: '8px',
+            paddingTop: '8px',
+            paddingRight: '16px',
+            paddingBottom: '8px',
+            paddingLeft: '16px',
+            background: 'linear-gradient(97.34deg, rgba(175, 158, 249, 0.6) 0%, rgba(196, 167, 255, 0.6) 100%)',
+            opacity: 1,
+            color: 'var(--font-purple-button)'
           }}
         >
-          <span className="text-base font-normal text-[#3d315e]">
+          <span className="text-base font-normal">
             Getting Quote
           </span>
         </button>
-      )}
-
-      {/* Error state */}
-      {preparePayment.isError && !paymentData && (
-        <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-          <p className="text-destructive text-sm text-center mb-1">Failed to prepare payment</p>
-          <p className="text-xs text-muted-foreground text-center">
-            {preparePayment.error instanceof Error
-              ? preparePayment.error.message
-              : 'Please try again or refresh the page'}
-          </p>
-        </div>
       )}
 
       {/* DeFi Payment Info */}
