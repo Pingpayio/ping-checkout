@@ -1,6 +1,7 @@
 import { ChevronDownIcon } from './icons';
 
 interface AssetNetworkSelectorProps {
+  name?: string;
   symbol: string;
   icon?: string;
   network?: string;
@@ -9,6 +10,7 @@ interface AssetNetworkSelectorProps {
 }
 
 export const AssetNetworkSelector = ({
+  name,
   symbol,
   icon,
   network = 'NEAR',
@@ -63,8 +65,8 @@ export const AssetNetworkSelector = ({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-          <span className="text-sm font-normal" style={{ color: 'var(--font-primary)', textTransform: 'uppercase' }}>
-            {symbol}
+          <span className="text-sm font-bold" style={{ color: 'var(--font-primary)', textTransform: 'uppercase' }}>
+            {symbol === 'wnear' || symbol === 'wNEAR' ? 'NEAR' : symbol}
           </span>
           <span className="text-xs" style={{ color: 'var(--font-secondary)', textTransform: 'uppercase' }}>
             {network}

@@ -70,7 +70,6 @@ const ASSET_SYMBOL_TO_ICON: Record<string, string> = {
  */
 export function getAssetIcon(assetId: string): string | null {
   const symbol = ASSET_ID_TO_NAME[assetId];
-  console.log(symbol);
   
   if (symbol && ASSET_SYMBOL_TO_ICON[symbol]) {
     return ASSET_SYMBOL_TO_ICON[symbol];

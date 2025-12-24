@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useGetCheckoutSession } from '@/integrations/api/checkout';
-import { usePreparePayment } from '@/integrations/api/payments';
+import { usePreparePayment, useGetQuote } from '@/integrations/api/payments';
 import { useQuery } from '@tanstack/react-query';
 import { sessionQueryOptions } from '@/lib/session';
 import { authClient } from '@/lib/auth-client';
@@ -10,7 +10,6 @@ import { LoadingSpinner } from '@/components/loading';
 import { toast } from 'sonner';
 import { queryClient } from '@/utils/orpc';
 import { PaymentMethodSelection } from '@/components/checkout/payment-method-selection';
-import { WalletConnectStep } from '@/components/checkout/wallet-connect-step';
 import { PaymentAssetSelection } from '@/components/checkout/payment-asset-selection';
 import { formatAssetAmount } from '@/utils/format';
 
@@ -31,7 +30,9 @@ function CheckoutRoute() {
   const isConnected = !!accountId;
   const { data: sessionData, isLoading: sessionLoading, error: sessionError } = useGetCheckoutSession(sessionId);
   const preparePayment = usePreparePayment();
+  const getQuote = useGetQuote();
   const [paymentData, setPaymentData] = useState<Awaited<ReturnType<typeof preparePayment.mutateAsync>> | null>(null);
+  const [quoteData, setQuoteData] = useState<Awaited<ReturnType<typeof getQuote.mutateAsync>> | null>(null);
 
   // Auth flow state
   const [isConnectingWallet, setIsConnectingWallet] = useState(false);
@@ -41,20 +42,18 @@ function CheckoutRoute() {
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card' | 'deposit' | null>(null);
 
   // Payment asset selection (user chooses what to pay with)
+  // Default to USDC when wallet payment method is selected
   const [selectedPaymentAsset, setSelectedPaymentAsset] = useState<{ amount: string; asset: { chain: string; symbol: string } } | null>(null);
 
-  // Pre-connection asset selection (before wallet is connected)
-  const [preConnectionAssetId, setPreConnectionAssetId] = useState<string>('nep141:wrap.near');
-
-  // Auto-select pre-connection asset when wallet connects
+  // Auto-select default asset when wallet payment method is selected
   useEffect(() => {
-    if (isConnected && paymentMethod === 'wallet' && !selectedPaymentAsset) {
+    if (paymentMethod === 'wallet' && !selectedPaymentAsset) {
       setSelectedPaymentAsset({ 
         amount: '0',
         asset: { chain: 'NEAR', symbol: 'USDC' }
       });
     }
-  }, [isConnected, paymentMethod, selectedPaymentAsset, preConnectionAssetId]);
+  }, [paymentMethod, selectedPaymentAsset]);
 
   // Track which payment attempts we've made to prevent infinite loops
   // Key: `${sessionId}_${accountId}_${chain}_${symbol}`
@@ -144,9 +143,48 @@ function CheckoutRoute() {
     }
   };
 
-  // Auto-prepare payment when wallet is connected and asset is selected
+  // Auto-fetch quote when asset is selected (works for both connected and not connected)
   const sessionIdForPayment = sessionData?.session?.sessionId;
 
+  // Fetch quote when not connected
+  useEffect(() => {
+    if (
+      !isConnected &&
+      sessionIdForPayment &&
+      selectedPaymentAsset &&
+      !quoteData &&
+      !getQuote.isPending
+    ) {
+      const attemptKey = `quote_${sessionIdForPayment}_${selectedPaymentAsset.asset.chain}_${selectedPaymentAsset.asset.symbol}`;
+      
+      if (attemptedPayments.current.has(attemptKey)) {
+        return;
+      }
+
+      attemptedPayments.current.add(attemptKey);
+      const session = sessionData.session;
+
+      getQuote.mutate(
+        {
+          input: {
+            sessionId: session.sessionId,
+            payerAsset: selectedPaymentAsset,
+          },
+        },
+        {
+          onSuccess: (data) => {
+            setQuoteData(data);
+          },
+          onError: (error) => {
+            console.error('Failed to get quote:', error);
+            attemptedPayments.current.delete(attemptKey);
+          },
+        }
+      );
+    }
+  }, [isConnected, sessionIdForPayment, selectedPaymentAsset?.asset?.chain, selectedPaymentAsset?.asset?.symbol, quoteData, getQuote.isPending]);
+
+  // Auto-prepare payment when wallet is connected and asset is selected
   useEffect(() => {
     if (
       isConnected &&
@@ -157,6 +195,7 @@ function CheckoutRoute() {
       !preparePayment.isPending
     ) {
       const attemptKey = `${sessionIdForPayment}_${accountId}_${selectedPaymentAsset.asset.chain}_${selectedPaymentAsset.asset.symbol}`;
+      
       if (attemptedPayments.current.has(attemptKey)) {
         return;
       }
@@ -164,13 +203,6 @@ function CheckoutRoute() {
       attemptedPayments.current.add(attemptKey);
       const session = sessionData.session;
       const idempotencyKey = `checkout_${session.sessionId}_${accountId}_${selectedPaymentAsset.asset.chain}_${selectedPaymentAsset.asset.symbol}_${Date.now()}`;
-      console.log('[checkout] preparing payment', {
-        sessionId: session.sessionId,
-        payer: accountId,
-        payerAsset: selectedPaymentAsset,
-        destination: session.amount,
-        recipient: session.recipient,
-      });
 
       preparePayment.mutate(
         {
@@ -186,9 +218,12 @@ function CheckoutRoute() {
         {
           onSuccess: (data) => {
             setPaymentData(data);
+            // Clear quote data when payment is prepared
+            setQuoteData(null);
           },
           onError: (error) => {
             console.error('Failed to prepare payment:', error);
+            attemptedPayments.current.delete(attemptKey);
           },
         }
       );
@@ -219,8 +254,6 @@ function CheckoutRoute() {
   }
 
   const session = sessionData.session;
-
-  console.log('[CheckoutRoute] Session data:', session);
 
   const handlePaymentSuccess = () => {
     if (!paymentData?.depositAddress) {
@@ -271,9 +304,11 @@ function CheckoutRoute() {
   const handleAssetChange = (chain: string, symbol: string) => {
     setSelectedPaymentAsset({ amount: '0', asset: { chain, symbol } });
     setPaymentData(null);
+    setQuoteData(null);
     // Clear attempted payments when switching assets to allow re-preparation
     attemptedPayments.current.clear();
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--widget-fill)' }}>
@@ -299,37 +334,29 @@ function CheckoutRoute() {
           />
         )}
 
-        {/* Step 2: Wallet Connect */}
-        {paymentMethod === 'wallet' && !isConnected && (
-          <WalletConnectStep
-            amount={session.amount.amount}
-            assetId={session.amount.assetId}
-            accountId={accountId}
-            isConnectingWallet={isConnectingWallet}
-            isSigningInWithNear={isSigningInWithNear}
-            selectedPaymentAssetId={preConnectionAssetId}
-            onConnect={handleWalletConnect}
-            onSignIn={handleNearSignIn}
-            onBack={() => setPaymentMethod(null)}
-            onAssetChange={setPreConnectionAssetId}
-          />
-        )}
-
-        {/* Step 3: Payment Asset Selection */}
-        {paymentMethod === 'wallet' && isConnected && (
+        {/* Step 2: Payment Asset Selection (handles both connected and not connected states) */}
+        {paymentMethod === 'wallet' && (
           <PaymentAssetSelection
             amount={session.amount.amount}
             assetId={session.amount.assetId}
             selectedPaymentAsset={selectedPaymentAsset}
-            paymentData={paymentData}
+            paymentData={isConnected ? paymentData : (quoteData ? { quote: quoteData.quote } : null)}
             accountId={accountId}
             onBack={() => {
               setPaymentMethod(null);
               setSelectedPaymentAsset(null);
               setPaymentData(null);
+              setQuoteData(null);
             }}
             onAssetChange={handleAssetChange}
             onPaymentSuccess={handlePaymentSuccess}
+            showConnectButton={!isConnected}
+            isConnectingWallet={isConnectingWallet}
+            isSigningInWithNear={isSigningInWithNear}
+            onConnect={handleWalletConnect}
+            onSignIn={handleNearSignIn}
+            isQuoteLoading={!isConnected && getQuote.isPending}
+            isQuoteError={!isConnected && getQuote.isError}
           />
         )}
 

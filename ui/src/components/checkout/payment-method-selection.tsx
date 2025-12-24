@@ -31,7 +31,7 @@ export const PaymentMethodSelection = ({
         <h1 className="text-2xl font-normal" style={{ color: 'var(--font-primary)' }}>Payment</h1>
 
         {/* Total Payment Section */}
-        <TotalPaymentDisplay amount={amount} assetId={assetId} showIcon={true} variant="large" />
+        <TotalPaymentDisplay amount={amount} amountInUsd={''} assetId={assetId} showIcon={true} variant="large" />
       </div>
 
       {/* Payment Method Buttons */}

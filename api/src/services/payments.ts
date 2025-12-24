@@ -11,6 +11,8 @@ import type {
   GetPaymentInput,
   GetPaymentResponse,
   Payment,
+  GetQuoteInput,
+  GetQuoteResponse,
 } from '../schema';
 import { CheckoutService, CheckoutSessionNotFoundError } from './checkout';
 import { randomBytes } from 'crypto';
@@ -223,6 +225,140 @@ export class PaymentsService {
       }
       
       return yield* _(Effect.fail(lastError || new Error('No valid execute endpoint found. Tried: ' + possibleEndpoints.join(', '))));
+    });
+  }
+
+  getQuote(
+    merchantId: string,
+    input: GetQuoteInput,
+    checkoutService: CheckoutService
+  ): Effect.Effect<GetQuoteResponse, CheckoutSessionNotFoundError | Error> {
+    return Effect.gen(this, function* (_) {
+      // Resolve assetId from chain and symbol
+      const assetId = yield* _(resolveAssetId(
+        input.payerAsset.asset.symbol,
+        input.payerAsset.asset.chain
+      ));
+
+      const sessionResult = yield* _(
+        checkoutService.getSession(merchantId, { sessionId: input.sessionId })
+      );
+      const session = sessionResult.session;
+
+      // Transform input to internal format
+      const sourceAsset = {
+        assetId,
+        amount: input.payerAsset.amount,
+      };
+
+      // Get quote with dry: true (no recipient needed)
+      const quoteData = yield* _(this.getIntentsQuoteDry(
+        sourceAsset,
+        session.amount
+      ));
+
+      return {
+        quote: quoteData ? {
+          amountIn: quoteData.quote.amountIn,
+          amountInFormatted: quoteData.quote.amountInFormatted,
+          amountInUsd: quoteData.quote.amountInUsd,
+          amountOut: quoteData.quote.amountOut,
+          amountOutFormatted: quoteData.quote.amountOutFormatted,
+          amountOutUsd: quoteData.quote.amountOutUsd,
+          quoteRequest: {
+            originAsset: quoteData.quoteRequest.originAsset,
+            destinationAsset: quoteData.quoteRequest.destinationAsset,
+          },
+        } : undefined,
+      };
+    });
+  }
+
+  private getIntentsQuoteDry(
+    sourceAsset: { assetId: string; amount: string },
+    destinationAsset: { assetId: string; amount: string }
+  ): Effect.Effect<QuoteResponseData, Error> {
+    return Effect.gen(this, function* (_) {
+      if (!this.apiKey) {
+        return yield* _(Effect.fail(new Error('NEAR_INTENTS_API_KEY not configured')));
+      }
+
+      const originAsset = sourceAsset.assetId.startsWith('nep141:') 
+        ? sourceAsset.assetId 
+        : `nep141:${sourceAsset.assetId}`;
+      const destAsset = destinationAsset.assetId.startsWith('nep141:') 
+        ? destinationAsset.assetId 
+        : `nep141:${destinationAsset.assetId}`;
+      
+      const deadline = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      
+      // Dry quote - no recipient or refundTo needed
+      const quoteParams: QuoteRequestParams = {
+        dry: true,
+        swapType: "EXACT_OUTPUT",
+        slippageTolerance: 100,
+        originAsset,
+        depositType: "ORIGIN_CHAIN",
+        destinationAsset: destAsset,
+        amount: destinationAsset.amount,
+        refundTo: 'placeholder.near', // Placeholder for dry quote
+        refundType: "ORIGIN_CHAIN",
+        recipient: 'placeholder.near', // Placeholder for dry quote
+        recipientType: "DESTINATION_CHAIN",
+        deadline,
+        referral: 'ping-checkout',
+      };
+
+      const url = `${this.ONECLICK_BASE_URL}/v0/quote`;
+      
+      const result = yield* _(
+        Effect.tryPromise({
+          try: async () => {
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.apiKey}`,
+            };
+            
+            const response = await fetch(url, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(quoteParams),
+            });
+            
+            if (!response.ok) {
+              const data = await response.json().catch(() => ({})) as { message?: string; [key: string]: unknown };
+              
+              if (response.status === 401 || response.status === 403) {
+                throw new ProviderAuthError(data.message || 'Authentication failed');
+              }
+              
+              if (response.status === 429) {
+                throw new ProviderRateLimitError(data.message || 'Rate limit exceeded');
+              }
+              
+              if (response.status >= 400) {
+                const message = data.message || 'Validation error';
+                throw new ProviderValidationError(message);
+              }
+              
+              throw new ProviderError(data.message || 'Failed to get quote');
+            }
+            
+            return await response.json() as QuoteResponseData;
+          },
+          catch: (error) => {
+            if (error instanceof ProviderAuthError || 
+                error instanceof ProviderRateLimitError || 
+                error instanceof ProviderValidationError || 
+                error instanceof ProviderError) {
+              return error;
+            }
+            return new Error(`Failed to get quote: ${error instanceof Error ? error.message : String(error)}`);
+          },
+        })
+      );
+      
+      return result;
     });
   }
 
@@ -586,8 +722,10 @@ export class PaymentsService {
           depositAddress: quoteData.quote.depositAddress,
           amountIn: quoteData.quote.amountIn,
           amountInFormatted: quoteData.quote.amountInFormatted,
+          amountInUsd: quoteData.quote.amountInUsd,
           amountOut: quoteData.quote.amountOut,
           amountOutFormatted: quoteData.quote.amountOutFormatted,
+          amountOutUsd: quoteData.quote.amountOutUsd,
           deadline: quoteData.quote.deadline,
           quoteRequest: {
             originAsset: quoteData.quoteRequest.originAsset,
@@ -750,8 +888,10 @@ export class PaymentsService {
           depositAddress: quoteData.quote.depositAddress,
           amountIn: quoteData.quote.amountIn,
           amountInFormatted: quoteData.quote.amountInFormatted,
+          amountInUsd: quoteData.quote.amountInUsd,
           amountOut: quoteData.quote.amountOut,
           amountOutFormatted: quoteData.quote.amountOutFormatted,
+          amountOutUsd: quoteData.quote.amountOutUsd,
           deadline: quoteData.quote.deadline,
           quoteRequest: {
             originAsset: quoteData.quoteRequest.originAsset,

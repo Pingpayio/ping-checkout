@@ -2,6 +2,7 @@ import { formatAssetAmount, getAssetSymbol, getAssetIcon } from '@/utils/format'
 
 interface TotalPaymentDisplayProps {
   amount: string;
+  amountInUsd: string;
   assetId: string;
   showIcon?: boolean;
   variant?: 'large' | 'small';
@@ -9,6 +10,7 @@ interface TotalPaymentDisplayProps {
 
 export const TotalPaymentDisplay = ({
   amount,
+  amountInUsd,
   assetId,
   showIcon = false,
   variant = 'large'
@@ -17,7 +19,6 @@ export const TotalPaymentDisplay = ({
   const symbol = getAssetSymbol(assetId);
   const formattedAmount = formatAssetAmount(amount, assetId);
   const assetIcon = getAssetIcon(assetId);
-  console.log(assetIcon);
   
   return (
     <div
@@ -29,15 +30,28 @@ export const TotalPaymentDisplay = ({
       }}
     >
       <div className="flex items-center justify-between">
-        <span className={`${isLarge ? 'text-lg' : 'text-base'} font-normal`} style={{ color: 'var(--font-primary)' }}>
+        <span className={`${isLarge ? 'text-lg' : 'text-base'} font-semibold`} style={{ color: 'var(--font-primary)' }}>
           Total Payment:
         </span>
-        <div className="flex items-center gap-2">
-          {showIcon && assetIcon && <img src={assetIcon} alt={symbol} className="w-6 h-6" />}
-          <span className={`${isLarge ? 'text-xl' : 'text-lg'} font-normal`} style={{ color: 'var(--font-primary)' }}>
-            {formattedAmount}{' '}
-            {symbol}
-          </span>
+        <div className="flex flex-col items-start">
+          <div className="flex items-center" style={{ height: '28px' }}>
+            {showIcon && assetIcon && (
+              <div className="flex items-center justify-center overflow-hidden rounded-full mr-2" style={{ width: '26px', height: '26px' }}>
+                <img src={assetIcon} alt={symbol} className="w-full h-full" />
+              </div>
+            )}
+            <span className={`${isLarge ? 'text-xl' : 'text-lg'} font-semibold`} style={{ color: 'var(--font-primary)', lineHeight: '20px' }}>
+              {formattedAmount}{' '}
+              {symbol}
+            </span>
+          </div>
+          {amountInUsd && (
+            <div className="flex flex-col items-end justify-center w-full">
+              <span className="text-sm font-normal text-right" style={{ color: 'var(--font-secondary)', lineHeight: '20px' }}>
+                ~${parseFloat(amountInUsd).toFixed(2)} USD
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { CloseIcon } from './icons';
 import PingIcon from '@/assets/logos/PING_ICON.png';
+import NearIcon from '@/assets/icons/Near.png';
 
 interface NetworkSelectionModalProps {
   open: boolean;
@@ -58,9 +59,11 @@ const networks = [
     id: 'NEAR',
     name: 'NEAR',
     icon: (
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00C08B] to-[#00A872] flex items-center justify-center">
-        <span className="text-white text-sm font-bold">N</span>
-      </div>
+      <img
+        src={NearIcon}
+        alt="NEAR"
+        className="w-10 h-10 rounded-full"
+      />
     ),
   },
   // Future networks can be added here

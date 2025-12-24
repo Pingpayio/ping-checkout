@@ -113,8 +113,6 @@ export function PaymentButton({ paymentData, selectedPaymentAsset, onSuccess, on
           .send({ waitUntil: 'FINAL' });
       }
 
-      console.log('[PaymentButton] Payment transaction completed successfully');
-      console.log('[PaymentButton] Deposit address:', paymentData.depositAddress);
       toast.success('Payment sent successfully!');
       onSuccess?.();
     } catch (error) {

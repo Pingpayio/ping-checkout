@@ -91,14 +91,47 @@ export const QuoteDataSchema = z.object({
   depositAddress: z.string(),
   amountIn: z.string(),
   amountInFormatted: z.string(),
+  amountInUsd: z.string().optional(),
   amountOut: z.string(),
   amountOutFormatted: z.string(),
+  amountOutUsd: z.string().optional(),
   deadline: z.string(),
   quoteRequest: z.object({
     originAsset: z.string(),
     destinationAsset: z.string(),
   }).optional(),
 }).optional();
+
+// Schema for dry quote responses (dry: true) - depositAddress and deadline may be undefined
+export const DryQuoteDataSchema = z.object({
+  depositAddress: z.string().optional(),
+  amountIn: z.string(),
+  amountInFormatted: z.string(),
+  amountInUsd: z.string().optional(),
+  amountOut: z.string(),
+  amountOutFormatted: z.string(),
+  amountOutUsd: z.string().optional(),
+  deadline: z.string().optional(),
+  quoteRequest: z.object({
+    originAsset: z.string(),
+    destinationAsset: z.string(),
+  }).optional(),
+}).optional();
+
+export const GetQuoteInputSchema = z.object({
+  sessionId: z.string(),
+  payerAsset: z.object({
+    amount: z.string().regex(/^\d+$/, 'Amount must be a string integer in smallest units'),
+    asset: z.object({
+      chain: z.string(),
+      symbol: z.string(),
+    }),
+  }),
+});
+
+export const GetQuoteResponseSchema = z.object({
+  quote: DryQuoteDataSchema,
+});
 
 export const PreparePaymentResponseSchema = z.object({
   payment: PaymentSchema,
@@ -154,3 +187,5 @@ export type GetPaymentInput = z.infer<typeof GetPaymentInputSchema>;
 export type GetPaymentResponse = z.infer<typeof GetPaymentResponseSchema>;
 export type GetPaymentStatusInput = z.infer<typeof GetPaymentStatusInputSchema>;
 export type GetPaymentStatusResponse = z.infer<typeof GetPaymentStatusResponseSchema>;
+export type GetQuoteInput = z.infer<typeof GetQuoteInputSchema>;
+export type GetQuoteResponse = z.infer<typeof GetQuoteResponseSchema>;

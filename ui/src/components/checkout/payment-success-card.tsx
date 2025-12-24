@@ -163,22 +163,22 @@ export const PaymentSuccessCard = ({
         </div>
 
         {/* Network Fee */}
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
           <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Network Fee</span>
           <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{networkFee}</span>
-        </div>
+        </div> */}
 
         {/* Pingpay Fee */}
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
           <span className="text-sm font-normal" style={{ color: 'var(--font-secondary)' }}>Pingpay Fee</span>
           <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{pingpayFee}</span>
-        </div>
+        </div> */}
 
         {/* Total Fee */}
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
           <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>Total Fee</span>
           <span className="text-sm font-normal" style={{ color: 'var(--font-primary)' }}>{totalFee}</span>
-        </div>
+        </div> */}
 
         {/* Status */}
         <div className="flex items-center justify-between">
