@@ -1,16 +1,3 @@
-// interface CreateCheckoutSessionInput {
-//   amount: {
-//     assetId: string;
-//     amount: string;
-//   };
-//   recipient: {
-//     address: string;
-//     chainId: string;
-//   };
-//   successUrl?: string;
-//   cancelUrl?: string;
-// }
-
 interface CreateCheckoutSessionInput {
   amount: string;
   recipient: {
@@ -83,7 +70,7 @@ function hideLoading(button: HTMLButtonElement) {
 
 document.addEventListener('DOMContentLoaded', () => {
   const proceedBtn = document.getElementById('proceedBtn') as HTMLButtonElement;
-  const apiUrl = 'http://localhost:3001/api';
+  const apiUrl = process.env.API_URL || 'http://localhost:3001/api';
 
   proceedBtn.addEventListener('click', async () => {
     showLoading(proceedBtn);
