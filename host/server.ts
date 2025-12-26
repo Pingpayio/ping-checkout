@@ -109,7 +109,8 @@ async function startServer() {
       origin: process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) ?? [
         bosConfig.hostUrl,
         bosConfig.ui.url,
-        "http://localhost:3001"
+        "http://localhost:3001",
+        "https://demo.widget.pingpay.io"
       ],
       credentials: true,
     })
