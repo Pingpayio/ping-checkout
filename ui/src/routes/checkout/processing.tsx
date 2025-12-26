@@ -1,22 +1,42 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { usePaymentStatus } from '@/hooks/use-payment-status';
 import { useGetCheckoutSession } from '@/integrations/api/checkout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useEffect } from 'react';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { PaymentStatusCard } from '@/components/checkout/payment-status-card';
+import { PaymentSuccessCard } from '@/components/checkout/payment-success-card';
+import { PaymentFailedCard } from '@/components/checkout/payment-failed-card';
 
 export const Route = createFileRoute('/checkout/processing')({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       depositAddress: (search.depositAddress as string) || undefined,
       sessionId: (search.sessionId as string) || undefined,
+      paymentAmount: (search.paymentAmount as string) || undefined,
+      asset: (search.asset as string) || undefined,
+      network: (search.network as string) || undefined,
+      pricingRate: (search.pricingRate as string) || undefined,
+      networkFee: (search.networkFee as string) || undefined,
+      pingpayFee: (search.pingpayFee as string) || undefined,
+      totalFee: (search.totalFee as string) || undefined,
     };
   },
   component: ProcessingRoute,
 });
 
 function ProcessingRoute() {
-  const { depositAddress, sessionId } = Route.useSearch();
+  const {
+    depositAddress,
+    sessionId,
+    paymentAmount,
+    asset,
+    network,
+    pricingRate,
+    networkFee,
+    pingpayFee,
+    totalFee
+  } = Route.useSearch();
   const { status, isLoading } = usePaymentStatus(depositAddress, !!depositAddress);
   const { data: sessionData } = useGetCheckoutSession(sessionId, !!sessionId);
 
@@ -49,59 +69,62 @@ function ProcessingRoute() {
     );
   }
 
+  // Show success state
+  if (status === 'SUCCESS') {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4" style={{ backgroundColor: 'var(--widget-fill)' }}>
+        <PaymentSuccessCard
+          paymentAmount={paymentAmount || '0 USDC'}
+          asset={asset || 'USDC'}
+          network={network || 'NEAR Protocol'}
+          recipientAddress={depositAddress || ''}
+          pricingRate={pricingRate || '1 USD ≈ 0 NEAR'}
+          networkFee={networkFee || '$0.00'}
+          pingpayFee={pingpayFee || '$0.00'}
+          totalFee={totalFee || '$0.00'}
+          onViewExplorer={depositAddress ? () => {
+            window.open(`https://explorer.near-intents.org/transactions/${depositAddress}`, '_blank');
+          } : undefined}
+        />
+      </div>
+    );
+  }
+
+  // Show failed state
+  if (status === 'FAILED' || status === 'REFUNDED') {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4" style={{ backgroundColor: 'var(--widget-fill)' }}>
+        <PaymentFailedCard
+          paymentAmount={paymentAmount || '0 USDC'}
+          asset={asset || 'USDC'}
+          network={network || 'NEAR Protocol'}
+          recipientAddress={depositAddress || ''}
+          pricingRate={pricingRate}
+          networkFee={networkFee}
+          pingpayFee={pingpayFee}
+          totalFee={totalFee}
+          errorMessage={status === 'REFUNDED'
+            ? 'Your payment was refunded. You will receive your funds back.'
+            : undefined
+          }
+        />
+      </div>
+    );
+  }
+
+  // Show processing state with PaymentStatusCard
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Status</CardTitle>
-          <CardDescription>Your payment is being processed</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {(status === 'PENDING' || status === 'PROCESSING') && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-lg font-medium">
-                {status === 'PROCESSING' ? 'Processing payment...' : 'Waiting for deposit...'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                This may take a few moments. Please wait.
-              </p>
-            </div>
-          )}
-
-          {status === 'SUCCESS' && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <CheckCircle2 className="h-12 w-12 text-green-500" />
-              <p className="text-lg font-medium text-green-500">Payment Successful!</p>
-              {depositAddress && (
-                <a
-                  href={`https://explorer.near-intents.org/transactions/${depositAddress}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline font-mono"
-                >
-                  View on Explorer →
-                </a>
-              )}
-              <p className="text-sm text-muted-foreground">
-                Redirecting you back...
-              </p>
-            </div>
-          )}
-
-          {(status === 'FAILED' || status === 'REFUNDED') && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <XCircle className="h-12 w-12 text-red-500" />
-              <p className="text-lg font-medium text-red-500">
-                {status === 'REFUNDED' ? 'Payment Refunded' : 'Payment Failed'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Redirecting you back...
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <div className="flex items-center justify-center min-h-screen p-4" style={{ backgroundColor: 'var(--widget-fill)' }}>
+      <PaymentStatusCard
+        paymentAmount={paymentAmount || '0 USDC'}
+        asset={asset || 'USDC'}
+        network={network || 'NEAR Protocol'}
+        recipientAddress={depositAddress || ''}
+        pricingRate={pricingRate || '1 USD ≈ 0 NEAR'}
+        networkFee={networkFee || '$0.00'}
+        pingpayFee={pingpayFee || '$0.00'}
+        totalFee={totalFee || '$0.00'}
+      />
     </div>
   );
 }

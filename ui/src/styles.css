@@ -2,13 +2,13 @@
 
 @import 'tw-animate-css';
 
-@import url('https://fonts.googleapis.com/css2?family=Red+Hat+Mono:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
 body {
   @apply m-0;
-  font-family: 'Red Hat Mono', monospace;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -19,6 +19,35 @@ code {
 }
 
 :root {
+  /* Checkout Widget Design System */
+  /* Font Colors */
+  --font-primary: #FFFFFF;
+  --font-secondary: rgba(255, 255, 255, 0.6);
+  --font-purple-button: #3D315E;
+
+  /* Brand Colors */
+  --brand-purple: #AF9EF9;
+
+  /* Widget Colors */
+  --widget-fill: #1E1E1E;
+  --widget-stroke: #424242;
+
+  /* Elevation System */
+  --elevation-1-fill: rgba(255, 255, 255, 0.05);
+  --elevation-1-stroke: rgba(255, 255, 255, 0.1);
+  --elevation-2-fill: rgba(255, 255, 255, 0.08);
+  --elevation-2-stroke: rgba(255, 255, 255, 0.18);
+
+  /* Border Radius */
+  --radius-widget: 12px;
+  --radius-button: 8px;
+  --radius-field: 8px;
+  --radius-selector: 9999px;
+
+  /* Widget Padding */
+  --widget-padding: 25px;
+
+  /* Legacy tokens (keeping for compatibility) */
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -95,6 +124,19 @@ code {
 }
 
 @theme inline {
+  /* Checkout Widget Design System Colors */
+  --color-widget-fill: var(--widget-fill);
+  --color-widget-stroke: var(--widget-stroke);
+  --color-brand-purple: var(--brand-purple);
+  --color-font-primary: var(--font-primary);
+  --color-font-secondary: var(--font-secondary);
+  --color-font-purple-button: var(--font-purple-button);
+  --color-elevation-1-fill: var(--elevation-1-fill);
+  --color-elevation-1-stroke: var(--elevation-1-stroke);
+  --color-elevation-2-fill: var(--elevation-2-fill);
+  --color-elevation-2-stroke: var(--elevation-2-stroke);
+
+  /* Legacy tokens */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

@@ -5,18 +5,33 @@ export type PreparePaymentInput = {
   input: {
     sessionId: string;
     payerAsset: {
-      assetId: string;
       amount: string;
+      asset: {
+        chain: string;
+        symbol: string;
+      };
     };
     payer: {
       address: string;
-      chainId: string;
     };
     idempotencyKey: string;
   };
 };
 
 export type PreparePaymentOutput = Awaited<ReturnType<typeof apiClient.payments.prepare>>;
+export type GetQuoteInput = {
+  input: {
+    sessionId: string;
+    payerAsset: {
+      amount: string;
+      asset: {
+        chain: string;
+        symbol: string;
+      };
+    };
+  };
+};
+export type GetQuoteOutput = Awaited<ReturnType<typeof apiClient.payments.getQuote>>;
 export type GetPaymentInput = { paymentId: string };
 export type GetPaymentOutput = Awaited<ReturnType<typeof apiClient.payments.get>>;
 export type GetPaymentStatusInput = { depositAddress: string };
@@ -28,6 +43,14 @@ export function usePreparePayment() {
   return useMutation({
     mutationFn: async (input: PreparePaymentInput): Promise<PreparePaymentOutput> => {
       return await apiClient.payments.prepare(input);
+    },
+  });
+}
+
+export function useGetQuote() {
+  return useMutation({
+    mutationFn: async (input: GetQuoteInput): Promise<GetQuoteOutput> => {
+      return await apiClient.payments.getQuote(input);
     },
   });
 }

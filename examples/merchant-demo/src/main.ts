@@ -1,11 +1,24 @@
+// interface CreateCheckoutSessionInput {
+//   amount: {
+//     assetId: string;
+//     amount: string;
+//   };
+//   recipient: {
+//     address: string;
+//     chainId: string;
+//   };
+//   successUrl?: string;
+//   cancelUrl?: string;
+// }
+
 interface CreateCheckoutSessionInput {
-  amount: {
-    assetId: string;
-    amount: string;
-  };
+  amount: string;
   recipient: {
     address: string;
-    chainId: string;
+  };
+  asset: {
+    chain: string;
+    symbol: string;
   };
   successUrl?: string;
   cancelUrl?: string;
@@ -15,14 +28,12 @@ interface CreateCheckoutSessionResponse {
   session: {
     sessionId: string;
     status: string;
-    amount: {
-      assetId: string;
-      amount: string;
-    };
-    recipient: {
-      address: string;
-      chainId: string;
-    };
+    amount: string;
+    recipient: string;
+    asset: {
+      chain: string;
+      symbol: string;
+    }
     createdAt: string;
     expiresAt?: string;
   };
@@ -81,13 +92,13 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       // Hardcoded demo values - 1 USDC
       const input: CreateCheckoutSessionInput = {
-        amount: {
-          assetId: 'nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1', // USDC on NEAR
-          amount: '1000000', // 1 USDC (6 decimals: 1 * 10^6 = 1000000)
-        },
+        amount: '1000000', // 1 USDC (6 decimals: 1 * 10^6 = 1000000)
         recipient: {
-          address: 'example-merchant.near', //add recipient's near address
-          chainId: 'near:mainnet',
+          address: 'example-merchant.near', // add recipient's near address
+        },
+        asset: {
+          chain: 'NEAR',
+          symbol: 'USDC',
         },
       };
 

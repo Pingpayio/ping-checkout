@@ -26,8 +26,9 @@ describe('Checkout Sessions', () => {
   });
 
   const validRequest = {
-    amount: { assetId: 'nep141:usdc.near', amount: '1000000' },
+    amount: '1000000',
     recipient: { address: 'merchant.near' },
+    asset: { chain: 'NEAR', symbol: 'USDC' },
     theme: { brandColor: '#FF0000' },
     successUrl: 'https://example.com/success',
     cancelUrl: 'https://example.com/cancel',
@@ -42,7 +43,10 @@ describe('Checkout Sessions', () => {
       expect(result.session).toMatchObject({
         sessionId: expect.stringMatching(/^cs_/),
         status: 'CREATED',
-        amount: validRequest.amount,
+        amount: {
+          assetId: expect.any(String),
+          amount: validRequest.amount,
+        },
         recipient: validRequest.recipient,
         theme: validRequest.theme,
         successUrl: validRequest.successUrl,
@@ -61,8 +65,9 @@ describe('Checkout Sessions', () => {
     it('creates session without optional fields', async () => {
       const client = await getPluginClient();
       const minimalRequest = {
-        amount: { assetId: 'nep141:usdc.near', amount: '1000000' },
+        amount: '1000000',
         recipient: { address: 'merchant.near' },
+        asset: { chain: 'NEAR', symbol: 'USDC' },
       };
 
       const result = await client.checkout.createSession(minimalRequest);
@@ -77,8 +82,9 @@ describe('Checkout Sessions', () => {
     it('rejects invalid amount (non-numeric string)', async () => {
       const client = await getPluginClient();
       const invalidRequest = {
-        amount: { assetId: 'nep141:usdc.near', amount: 'invalid' },
+        amount: 'invalid',
         recipient: { address: 'merchant.near' },
+        asset: { chain: 'NEAR', symbol: 'USDC' },
       };
 
       await expect(
@@ -89,7 +95,8 @@ describe('Checkout Sessions', () => {
     it('rejects missing recipient', async () => {
       const client = await getPluginClient();
       const invalidRequest = {
-        amount: { assetId: 'nep141:usdc.near', amount: '1000000' },
+        amount: '1000000',
+        asset: { chain: 'NEAR', symbol: 'USDC' },
       };
 
       await expect(
@@ -134,7 +141,10 @@ describe('Checkout Sessions', () => {
       expect(result.session).toMatchObject({
         sessionId,
         status: 'CREATED',
-        amount: validRequest.amount,
+        amount: {
+          assetId: expect.any(String),
+          amount: validRequest.amount,
+        },
         recipient: validRequest.recipient,
       });
     });
@@ -162,7 +172,10 @@ describe('Checkout Sessions', () => {
       expect(result.session).toMatchObject({
         sessionId: created.session.sessionId,
         status: 'CREATED',
-        amount: fullRequest.amount,
+        amount: {
+          assetId: expect.any(String),
+          amount: fullRequest.amount,
+        },
         recipient: fullRequest.recipient,
         theme: fullRequest.theme,
         successUrl: fullRequest.successUrl,

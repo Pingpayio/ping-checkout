@@ -182,6 +182,26 @@ export default createPlugin({
             });
           }
         }),
+
+        getQuote: builder.payments.getQuote.handler(async ({ input, context }) => {
+          const merchantId = context.nearAccountId || 'anonymous';
+          
+          try {
+            const result = await Effect.runPromise(
+              paymentsService.getQuote(merchantId, input.input, checkoutService)
+            );
+            return result;
+          } catch (error) {
+            if (error instanceof CheckoutSessionNotFoundError) {
+              throw new ORPCError('NOT_FOUND', {
+                message: error.message,
+              });
+            }
+            throw new ORPCError('INTERNAL_SERVER_ERROR', {
+              message: error instanceof Error ? error.message : 'Failed to get quote',
+            });
+          }
+        }),
       },
     }
   },
