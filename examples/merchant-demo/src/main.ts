@@ -70,7 +70,10 @@ function hideLoading(button: HTMLButtonElement) {
 
 document.addEventListener('DOMContentLoaded', () => {
   const proceedBtn = document.getElementById('proceedBtn') as HTMLButtonElement;
-  const apiUrl = process.env.API_URL || 'http://localhost:3001/api';
+  // In Vite, use import.meta.env and prefix env vars with VITE_
+  // @ts-ignore - Vite provides import.meta.env at runtime
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001' ;
+  const apiUrl = baseUrl + '/api';
 
   proceedBtn.addEventListener('click', async () => {
     showLoading(proceedBtn);
